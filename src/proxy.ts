@@ -1,23 +1,22 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/api/auth", "/api/reminders/trigger"];
+import { isAuthEnabled, validateSession } from "@/server/auth";
+import { getProxyAuthDecision } from "@/server/auth/access";
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (PUBLIC_PATHS.some((path) => pathname.startsWith(path))) {
-    return NextResponse.next();
-  }
-
-  if (pathname.startsWith("/_next") || pathname.startsWith("/favicon")) {
-    return NextResponse.next();
-  }
-
   const sessionToken = request.cookies.get("session")?.value;
-  const noAuth = request.cookies.get("no-auth")?.value;
+  const decision = getProxyAuthDecision({
+    pathname,
+    authEnabled: isAuthEnabled(),
+    sessionToken,
+    sessionValid: sessionToken ? validateSession(sessionToken) : false,
+    noAuthCookie: request.cookies.get("no-auth")?.value,
+  });
 
-  if (!sessionToken && noAuth !== "true") {
+  if (decision === "redirect-login") {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 

@@ -33,5 +33,21 @@ export async function PUT(request: NextRequest) {
     await setPassword(body.password ?? "");
   }
 
-  return NextResponse.json({ ok: true });
+  const response = NextResponse.json({ ok: true });
+
+  if ("password" in body) {
+    if (body.password) {
+      response.cookies.delete("no-auth");
+      response.cookies.delete("session");
+    } else {
+      response.cookies.set("no-auth", "true", {
+        httpOnly: true,
+        sameSite: "lax",
+        maxAge: 86400,
+        path: "/",
+      });
+    }
+  }
+
+  return response;
 }
