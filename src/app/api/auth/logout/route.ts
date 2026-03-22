@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
   const token = request.cookies.get("session")?.value;
 
   if (token) {
-    clearSession(token);
+    clearSession();
   }
 
   const response = NextResponse.json({ ok: true });

@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+
+import { TODOS_CHANGED_EVENT } from "@/lib/todo-events";
 
 const WEEKDAY_LABELS = ["一", "二", "三", "四", "五", "六", "日"];
 
@@ -63,12 +65,26 @@ export function Calendar() {
   const yearMonth = `${year}-${String(month + 1).padStart(2, "0")}`;
   const days = getMonthDays(year, month);
 
-  useEffect(() => {
+  const refreshDatesWithTodos = useCallback(() => {
     fetch(`/api/todos?calendarMonth=${yearMonth}`)
       .then((response) => response.json())
       .then((dates: string[]) => setDatesWithTodos(new Set(dates)))
       .catch(() => undefined);
   }, [yearMonth]);
+
+  useEffect(() => {
+    refreshDatesWithTodos();
+
+    function handleTodosChanged() {
+      refreshDatesWithTodos();
+    }
+
+    window.addEventListener(TODOS_CHANGED_EVENT, handleTodosChanged);
+
+    return () => {
+      window.removeEventListener(TODOS_CHANGED_EVENT, handleTodosChanged);
+    };
+  }, [refreshDatesWithTodos]);
 
   function goToPreviousMonth() {
     if (month === 0) {

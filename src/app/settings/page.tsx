@@ -99,9 +99,11 @@ export default function SettingsPage() {
           <div className="flex gap-2">
             <input
               type="password"
+              name="new-password"
               value={newPassword}
               onChange={(event) => setNewPassword(event.target.value)}
               placeholder="输入新密码"
+              autoComplete="new-password"
               className="flex-1 rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none"
             />
             {hasPassword ? (
@@ -124,6 +126,7 @@ export default function SettingsPage() {
             <label className="mb-1 block text-xs text-[var(--text-muted)]">Bot Token</label>
             <input
               type="text"
+              name="telegram_bot_token"
               value={settings.telegram_bot_token ?? ""}
               onChange={(event) => updateSetting("telegram_bot_token", event.target.value)}
               placeholder="123456:ABC-DEF..."
@@ -134,6 +137,7 @@ export default function SettingsPage() {
             <label className="mb-1 block text-xs text-[var(--text-muted)]">Chat ID</label>
             <input
               type="text"
+              name="telegram_chat_id"
               value={settings.telegram_chat_id ?? ""}
               onChange={(event) => updateSetting("telegram_chat_id", event.target.value)}
               placeholder="123456789"
@@ -162,6 +166,7 @@ export default function SettingsPage() {
             <label className="mb-1 block text-xs text-[var(--text-muted)]">前一天提醒时间</label>
             <input
               type="time"
+              name="reminder_time_day_before"
               value={settings.reminder_time_day_before ?? "20:00"}
               onChange={(event) => updateSetting("reminder_time_day_before", event.target.value)}
               className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none"
@@ -171,6 +176,7 @@ export default function SettingsPage() {
             <label className="mb-1 block text-xs text-[var(--text-muted)]">当天提醒时间</label>
             <input
               type="time"
+              name="reminder_time_same_day"
               value={settings.reminder_time_same_day ?? "08:00"}
               onChange={(event) => updateSetting("reminder_time_same_day", event.target.value)}
               className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none"

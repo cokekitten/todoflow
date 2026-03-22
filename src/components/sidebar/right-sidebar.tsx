@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+
+import { TODOS_CHANGED_EVENT } from "@/lib/todo-events";
 
 interface UpcomingDate {
   date: string;
@@ -22,7 +24,7 @@ export function RightSidebar() {
   const [unscheduledCount, setUnscheduledCount] = useState(0);
   const today = new Date().toISOString().split("T")[0];
 
-  useEffect(() => {
+  const refreshSidebarData = useCallback(() => {
     fetch(`/api/todos?upcoming=${today}`)
       .then((response) => response.json())
       .then((data: UpcomingDate[]) => setUpcoming(data))
@@ -38,6 +40,20 @@ export function RightSidebar() {
       .then((data: OverdueTodo[]) => setUnscheduledCount(data.length))
       .catch(() => undefined);
   }, [today]);
+
+  useEffect(() => {
+    refreshSidebarData();
+
+    function handleTodosChanged() {
+      refreshSidebarData();
+    }
+
+    window.addEventListener(TODOS_CHANGED_EVENT, handleTodosChanged);
+
+    return () => {
+      window.removeEventListener(TODOS_CHANGED_EVENT, handleTodosChanged);
+    };
+  }, [refreshSidebarData]);
 
   function formatDate(dateStr: string) {
     const date = new Date(`${dateStr}T00:00:00`);

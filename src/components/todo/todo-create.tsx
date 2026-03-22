@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { notifyTodosChanged } from "@/lib/todo-events";
 import type { Tag } from "@/types";
 
 interface TodoCreateProps {
@@ -47,6 +48,7 @@ export function TodoCreate({ date, defaultTagId, onCreated }: TodoCreateProps) {
     setTitle("");
     setSelectedTagIds(defaultTagId ? [defaultTagId] : []);
     setShowTagPicker(false);
+    notifyTodosChanged();
     onCreated();
   }
 

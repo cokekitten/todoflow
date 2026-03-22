@@ -70,9 +70,11 @@ export default function LoginPage() {
 
         <input
           type="password"
+          name="password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           placeholder="密码"
+          autoComplete="current-password"
           autoFocus
           className="mb-4 w-full rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none"
         />
