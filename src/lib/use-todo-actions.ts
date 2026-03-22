@@ -40,5 +40,31 @@ export function useTodoActions(onMutate: () => void) {
     [onMutate],
   );
 
-  return { handleToggle, handleDelete, handleUpdate };
+  const handleDateChange = useCallback(
+    async (id: string, date: string | null) => {
+      await fetch(`/api/todos/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date }),
+      });
+      notifyTodosChanged();
+      onMutate();
+    },
+    [onMutate],
+  );
+
+  const handleReorder = useCallback(
+    async (ids: string[]) => {
+      await fetch("/api/todos/reorder", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      // Don't call onMutate here — the parent already updated local state optimistically
+      notifyTodosChanged();
+    },
+    [],
+  );
+
+  return { handleToggle, handleDelete, handleUpdate, handleDateChange, handleReorder };
 }

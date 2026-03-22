@@ -32,8 +32,15 @@ export default function TagPage() {
       .catch(() => undefined);
   }, [fetchTodos, tagId]);
 
-  const { handleToggle, handleDelete, handleUpdate } = useTodoActions(fetchTodos);
+  const { handleToggle, handleDelete, handleUpdate, handleDateChange, handleReorder } =
+    useTodoActions(fetchTodos);
   const pendingCount = todos.filter((todo) => todo.completed === 0).length;
+
+  function onReorder(ids: string[]) {
+    const idIndexMap = new Map(ids.map((id, i) => [id, i]));
+    setTodos((prev) => [...prev].sort((a, b) => (idIndexMap.get(a.id) ?? 0) - (idIndexMap.get(b.id) ?? 0)));
+    void handleReorder(ids);
+  }
 
   return (
     <div>
@@ -51,15 +58,17 @@ export default function TagPage() {
           <span className="text-xs text-[var(--text-muted)]">{pendingCount} 项待办</span>
         </div>
       </div>
-
       <TodoCreate defaultTagId={tagId} onCreated={fetchTodos} />
-
       <TodoList
         todos={todos}
         showDate
+        hideTags
+        enableDragSort
         onToggle={handleToggle}
         onDelete={handleDelete}
         onUpdate={handleUpdate}
+        onDateChange={handleDateChange}
+        onReorder={onReorder}
       />
     </div>
   );

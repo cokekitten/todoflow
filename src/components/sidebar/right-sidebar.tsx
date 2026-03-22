@@ -4,56 +4,70 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { TODOS_CHANGED_EVENT } from "@/lib/todo-events";
-
-interface UpcomingDate {
-  date: string;
-  count: number;
-}
-
-interface OverdueTodo {
-  id: string;
-  title: string;
-  date: string | null;
-}
+import { notifyTodosChanged } from "@/lib/todo-events";
+import type { Todo, Tag } from "@/types";
+import { RightSidebarTodoItem } from "./right-sidebar-todo-item";
 
 const WEEKDAYS = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+const MAX_DATES = 5;
+const MAX_TODOS_PER_GROUP = 10;
 
 export function RightSidebar() {
-  const [upcoming, setUpcoming] = useState<UpcomingDate[]>([]);
-  const [overdue, setOverdue] = useState<OverdueTodo[]>([]);
-  const [unscheduledCount, setUnscheduledCount] = useState(0);
+  const [upcomingTodos, setUpcomingTodos] = useState<Todo[]>([]);
+  const [overdueTodos, setOverdueTodos] = useState<Todo[]>([]);
+  const [unscheduledTodos, setUnscheduledTodos] = useState<Todo[]>([]);
+  const [allTags, setAllTags] = useState<Tag[]>([]);
   const today = new Date().toISOString().split("T")[0];
 
   const refreshSidebarData = useCallback(() => {
+    // Fetch upcoming todos (we need full todo data now)
     fetch(`/api/todos?upcoming=${today}`)
       .then((response) => response.json())
-      .then((data: UpcomingDate[]) => setUpcoming(data))
+      .then((dates: { date: string; count: number }[]) => {
+        // Fetch todos for up to MAX_DATES upcoming dates
+        const datesToFetch = dates.slice(0, MAX_DATES);
+        return Promise.all(
+          datesToFetch.map((d) =>
+            fetch(`/api/todos?date=${d.date}`)
+              .then((r) => r.json())
+              .then((todos: Todo[]) => todos.filter((t) => t.completed === 0)),
+          ),
+        );
+      })
+      .then((todoGroups) => setUpcomingTodos(todoGroups.flat()))
       .catch(() => undefined);
 
     fetch(`/api/todos?overdue=${today}`)
       .then((response) => response.json())
-      .then((data: OverdueTodo[]) => setOverdue(data))
+      .then((data: Todo[]) => setOverdueTodos(data))
       .catch(() => undefined);
 
     fetch("/api/todos?unscheduled=true")
       .then((response) => response.json())
-      .then((data: OverdueTodo[]) => setUnscheduledCount(data.length))
+      .then((data: Todo[]) => setUnscheduledTodos(data.filter((t) => t.completed === 0)))
+      .catch(() => undefined);
+
+    fetch("/api/tags")
+      .then((response) => response.json())
+      .then((data: Tag[]) => setAllTags(data))
       .catch(() => undefined);
   }, [today]);
 
   useEffect(() => {
     refreshSidebarData();
-
-    function handleTodosChanged() {
-      refreshSidebarData();
-    }
-
+    function handleTodosChanged() { refreshSidebarData(); }
     window.addEventListener(TODOS_CHANGED_EVENT, handleTodosChanged);
-
-    return () => {
-      window.removeEventListener(TODOS_CHANGED_EVENT, handleTodosChanged);
-    };
+    return () => { window.removeEventListener(TODOS_CHANGED_EVENT, handleTodosChanged); };
   }, [refreshSidebarData]);
+
+  async function handleToggle(id: string, completed: boolean) {
+    await fetch(`/api/todos/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ completed }),
+    });
+    notifyTodosChanged();
+  }
 
   function formatDate(dateStr: string) {
     const date = new Date(`${dateStr}T00:00:00`);
@@ -66,67 +80,142 @@ export function RightSidebar() {
     return Math.floor((current.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
   }
 
-  const overdueDates = Array.from(
-    new Set(overdue.map((todo) => todo.date).filter((date): date is string => Boolean(date))),
+  // Group upcoming todos by date (near to far)
+  const upcomingByDate = new Map<string, Todo[]>();
+  for (const todo of upcomingTodos) {
+    if (!todo.date) continue;
+    if (!upcomingByDate.has(todo.date)) upcomingByDate.set(todo.date, []);
+    upcomingByDate.get(todo.date)!.push(todo);
+  }
+  const upcomingDates = Array.from(upcomingByDate.keys()).sort();
+
+  // Group overdue todos by date (near to far, most recent overdue first)
+  const overdueByDate = new Map<string, Todo[]>();
+  for (const todo of overdueTodos) {
+    if (!todo.date) continue;
+    if (!overdueByDate.has(todo.date)) overdueByDate.set(todo.date, []);
+    overdueByDate.get(todo.date)!.push(todo);
+  }
+  const overdueDates = Array.from(overdueByDate.keys()).sort().reverse();
+
+  // Group unscheduled by tag (follow tag sortOrder)
+  const unscheduledByTag = new Map<string, { tag: Tag | null; todos: Todo[] }>();
+  const unscheduledUntagged: Todo[] = [];
+  for (const todo of unscheduledTodos) {
+    if (todo.tags.length === 0) {
+      unscheduledUntagged.push(todo);
+    } else {
+      const primaryTag = todo.tags[0];
+      if (!unscheduledByTag.has(primaryTag.id)) {
+        unscheduledByTag.set(primaryTag.id, { tag: primaryTag, todos: [] });
+      }
+      unscheduledByTag.get(primaryTag.id)!.todos.push(todo);
+    }
+  }
+  // Sort tag groups by the tag's position in allTags
+  const tagIdOrder = new Map(allTags.map((t, i) => [t.id, i]));
+  const sortedUnscheduledGroups = Array.from(unscheduledByTag.values()).sort(
+    (a, b) => (tagIdOrder.get(a.tag?.id ?? "") ?? 999) - (tagIdOrder.get(b.tag?.id ?? "") ?? 999),
   );
+
+  function renderTodoGroup(todos: Todo[], maxItems: number = MAX_TODOS_PER_GROUP) {
+    const visible = todos.slice(0, maxItems);
+    const remaining = todos.length - visible.length;
+    return (
+      <>
+        {visible.map((todo) => (
+          <RightSidebarTodoItem key={todo.id} todo={todo} onToggle={handleToggle} />
+        ))}
+        {remaining > 0 && (
+          <div className="py-0.5 text-[10px] text-[var(--text-dim)]">
+            还有 {remaining} 项...
+          </div>
+        )}
+      </>
+    );
+  }
 
   return (
     <aside className="w-[260px] flex-shrink-0 overflow-y-auto border-l border-[var(--border-default)] bg-[var(--bg-sidebar-right)] p-5">
+      {/* Upcoming */}
       <section className="mb-6">
         <h3 className="mb-3 text-sm font-semibold">即将提醒</h3>
-        {upcoming.length === 0 ? (
+        {upcomingDates.length === 0 ? (
           <p className="text-xs text-[var(--text-muted)]">暂无</p>
         ) : (
-          <div className="flex flex-col gap-2">
-            {upcoming.map((item) => (
-              <Link
-                key={item.date}
-                href={`/date/${item.date}`}
-                className="block rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] p-3 transition-colors hover:border-[var(--accent)]"
-              >
-                <div className="text-xs font-semibold text-[var(--accent-light)]">
-                  {formatDate(item.date)}
-                </div>
-                <div className="mt-1 text-xs text-[var(--text-secondary)]">{item.count} 项待办</div>
-              </Link>
+          <div className="flex flex-col gap-3">
+            {upcomingDates.map((date) => (
+              <div key={date}>
+                <Link
+                  href={`/date/${date}`}
+                  className="mb-1 block text-xs font-semibold text-[var(--accent-light)] hover:underline"
+                >
+                  {formatDate(date)}
+                </Link>
+                {renderTodoGroup(upcomingByDate.get(date) ?? [])}
+              </div>
             ))}
           </div>
         )}
       </section>
 
+      {/* Overdue */}
       <section className="mb-6">
         <h3 className="mb-3 text-sm font-semibold">已逾期</h3>
         {overdueDates.length === 0 ? (
           <p className="text-xs text-[var(--text-muted)]">无逾期项</p>
         ) : (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             {overdueDates.map((date) => (
-              <Link
-                key={date}
-                href={`/date/${date}`}
-                className="block rounded-lg border border-[var(--danger-border)] bg-[var(--danger-bg)] p-3 transition-opacity hover:opacity-90"
-              >
-                <div className="text-xs font-semibold text-[var(--danger)]">
+              <div key={date} className="rounded-lg border border-[var(--danger-border)] bg-[var(--danger-bg)] p-2.5">
+                <Link
+                  href={`/date/${date}`}
+                  className="mb-1 block text-xs font-semibold text-[var(--danger)] hover:underline"
+                >
                   {formatDate(date)} · 逾期{daysOverdue(date)}天
-                </div>
-                <div className="mt-1 text-xs text-[var(--text-secondary)]">
-                  {overdue.filter((todo) => todo.date === date).length} 项未完成
-                </div>
-              </Link>
+                </Link>
+                {renderTodoGroup(overdueByDate.get(date) ?? [])}
+              </div>
             ))}
           </div>
         )}
       </section>
 
+      {/* Unscheduled */}
       <section>
-        <h3 className="mb-3 text-sm font-semibold">未安排</h3>
-        <Link
-          href="/unscheduled"
-          className="block rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] p-3 transition-colors hover:border-[var(--accent)]"
-        >
-          <div className="text-xs text-[var(--text-secondary)]">{unscheduledCount} 项无日期待办</div>
-          <div className="mt-1 text-[11px] text-[var(--text-dim)]">点击查看或安排日期</div>
-        </Link>
+        <h3 className="mb-3 text-sm font-semibold">
+          <Link href="/unscheduled" className="hover:underline">
+            未安排
+          </Link>
+          <span className="ml-2 text-xs font-normal text-[var(--text-muted)]">
+            {unscheduledTodos.length} 项
+          </span>
+        </h3>
+        {unscheduledTodos.length === 0 ? (
+          <p className="text-xs text-[var(--text-muted)]">暂无</p>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {sortedUnscheduledGroups.map(({ tag, todos }) => (
+              <div key={tag?.id ?? "untagged"}>
+                <div
+                  className="mb-1 text-[10px] font-semibold uppercase tracking-wider"
+                  style={{ color: tag?.color || "var(--text-muted)" }}
+                >
+                  {tag?.name ?? "未分类"}
+                </div>
+                {renderTodoGroup(todos)}
+              </div>
+            ))}
+            {unscheduledUntagged.length > 0 && (
+              <div>
+                <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                  未分类
+                </div>
+                {renderTodoGroup(unscheduledUntagged)}
+              </div>
+            )}
+          </div>
+        )}
       </section>
     </aside>
   );
