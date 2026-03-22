@@ -3,12 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
-interface Tag {
-  id: string;
-  name: string;
-  color: string | null;
-  sortOrder: number;
-}
+import type { Tag } from "@/types";
 
 export function TagList() {
   const [tags, setTags] = useState<Tag[]>([]);
