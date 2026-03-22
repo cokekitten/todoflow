@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ChevronDownIcon } from "@/components/icons/ui-icons";
 import { notifyTodosChanged, TAGS_CHANGED_EVENT, TODOS_CHANGED_EVENT } from "@/lib/todo-events";
@@ -36,6 +36,52 @@ function SectionCard({
   );
 }
 
+/**
+ * Animates content collapse/expand using CSS grid-template-rows transition.
+ * Content stays in the DOM but is hidden via overflow:hidden when collapsed.
+ * Uses a ref to imperatively update the style so the browser properly detects
+ * the value change and runs the CSS transition (React inline style objects
+ * are replaced wholesale, which can prevent transition detection).
+ * The `animate` prop controls whether to apply transitions (disabled during
+ * initial hydration to prevent flash).
+ */
+function CollapsibleContent({
+  collapsed,
+  animate,
+  children,
+}: {
+  collapsed: boolean;
+  animate: boolean;
+  children: React.ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    if (isFirstRender.current) {
+      // First render: set the value instantly (no transition)
+      el.style.gridTemplateRows = collapsed ? "0fr" : "1fr";
+      isFirstRender.current = false;
+      return;
+    }
+
+    // Subsequent updates: animate if hydrated
+    el.style.transition = animate ? "grid-template-rows 200ms ease-out" : "none";
+    el.style.gridTemplateRows = collapsed ? "0fr" : "1fr";
+  }, [collapsed, animate]);
+
+  return (
+    <div ref={ref} className="grid" style={{ gridTemplateRows: collapsed ? "0fr" : "1fr" }}>
+      <div className="overflow-hidden">
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export function RightSidebar() {
   const [upcomingTodos, setUpcomingTodos] = useState<Todo[]>([]);
   const [overdueTodos, setOverdueTodos] = useState<Todo[]>([]);
@@ -46,21 +92,23 @@ export function RightSidebar() {
     overdue: false,
     unscheduled: false,
   });
-  const today = new Date().toISOString().split("T")[0];
-
+  const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     const raw = localStorage.getItem(SECTION_STATE_KEY);
-    if (!raw) return;
-
-    try {
-      const parsed = JSON.parse(raw) as Partial<Record<SectionKey, boolean>>;
-      setCollapsed({
-        upcoming: parsed.upcoming ?? false,
-        overdue: parsed.overdue ?? false,
-        unscheduled: parsed.unscheduled ?? false,
-      });
-    } catch {}
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as Partial<Record<SectionKey, boolean>>;
+        setCollapsed({
+          upcoming: parsed.upcoming ?? false,
+          overdue: parsed.overdue ?? false,
+          unscheduled: parsed.unscheduled ?? false,
+        });
+      } catch {}
+    }
+    // Enable animations after first paint with correct state
+    requestAnimationFrame(() => setHydrated(true));
   }, []);
+  const today = new Date().toISOString().split("T")[0];
 
   function toggleSection(section: SectionKey) {
     setCollapsed((current) => {
@@ -208,25 +256,27 @@ export function RightSidebar() {
             ].join(" ")} />
           </span>
         </button>
-        {collapsed.upcoming ? null : upcomingDates.length === 0 ? (
-          <SectionCard>
-            <p className="text-xs text-[var(--text-muted)]">暂无</p>
-          </SectionCard>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {upcomingDates.map((date) => (
-              <SectionCard key={date}>
-                <Link
-                  href={`/date/${date}`}
-                  className="mb-2 block text-xs font-semibold text-[var(--accent-light)] hover:underline"
-                >
-                  {formatDate(date)}
-                </Link>
-                {renderTodoGroup(upcomingByDate.get(date) ?? [])}
-              </SectionCard>
-            ))}
-          </div>
-        )}
+        <CollapsibleContent collapsed={collapsed.upcoming} animate={hydrated}>
+          {upcomingDates.length === 0 ? (
+            <SectionCard>
+              <p className="text-xs text-[var(--text-muted)]">暂无</p>
+            </SectionCard>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {upcomingDates.map((date) => (
+                <SectionCard key={date}>
+                  <Link
+                    href={`/date/${date}`}
+                    className="mb-2 block text-xs font-semibold text-[var(--accent-light)] hover:underline"
+                  >
+                    {formatDate(date)}
+                  </Link>
+                  {renderTodoGroup(upcomingByDate.get(date) ?? [])}
+                </SectionCard>
+              ))}
+            </div>
+          )}
+        </CollapsibleContent>
       </section>
 
       {/* Overdue */}
@@ -244,25 +294,27 @@ export function RightSidebar() {
             ].join(" ")} />
           </span>
         </button>
-        {collapsed.overdue ? null : overdueDates.length === 0 ? (
-          <SectionCard danger>
-            <p className="text-xs text-[var(--text-muted)]">无逾期项</p>
-          </SectionCard>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {overdueDates.map((date) => (
-              <SectionCard key={date} danger>
-                <Link
-                  href={`/date/${date}`}
-                  className="mb-2 block text-xs font-semibold text-[var(--danger)] hover:underline"
-                >
-                  {formatDate(date)} · 逾期{daysOverdue(date)}天
-                </Link>
-                {renderTodoGroup(overdueByDate.get(date) ?? [])}
-              </SectionCard>
-            ))}
-          </div>
-        )}
+        <CollapsibleContent collapsed={collapsed.overdue} animate={hydrated}>
+          {overdueDates.length === 0 ? (
+            <SectionCard danger>
+              <p className="text-xs text-[var(--text-muted)]">无逾期项</p>
+            </SectionCard>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {overdueDates.map((date) => (
+                <SectionCard key={date} danger>
+                  <Link
+                    href={`/date/${date}`}
+                    className="mb-2 block text-xs font-semibold text-[var(--danger)] hover:underline"
+                  >
+                    {formatDate(date)} · 逾期{daysOverdue(date)}天
+                  </Link>
+                  {renderTodoGroup(overdueByDate.get(date) ?? [])}
+                </SectionCard>
+              ))}
+            </div>
+          )}
+        </CollapsibleContent>
       </section>
 
       {/* Unscheduled */}
@@ -287,33 +339,35 @@ export function RightSidebar() {
             ].join(" ")} />
           </span>
         </button>
-        {collapsed.unscheduled ? null : unscheduledTodos.length === 0 ? (
-          <SectionCard>
-            <p className="text-xs text-[var(--text-muted)]">暂无</p>
-          </SectionCard>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {sortedUnscheduledGroups.map(({ tag, todos }) => (
-              <SectionCard key={tag?.id ?? "untagged"}>
-                <div
-                  className="mb-2 text-[10px] font-semibold uppercase tracking-wider"
-                  style={{ color: tag?.color || "var(--text-muted)" }}
-                >
-                  {tag?.name ?? "未分类"}
-                </div>
-                {renderTodoGroup(todos)}
-              </SectionCard>
-            ))}
-            {unscheduledUntagged.length > 0 && (
-              <SectionCard>
-                <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                  未分类
-                </div>
-                {renderTodoGroup(unscheduledUntagged)}
-              </SectionCard>
-            )}
-          </div>
-        )}
+        <CollapsibleContent collapsed={collapsed.unscheduled} animate={hydrated}>
+          {unscheduledTodos.length === 0 ? (
+            <SectionCard>
+              <p className="text-xs text-[var(--text-muted)]">暂无</p>
+            </SectionCard>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {sortedUnscheduledGroups.map(({ tag, todos }) => (
+                <SectionCard key={tag?.id ?? "untagged"}>
+                  <div
+                    className="mb-2 text-[10px] font-semibold uppercase tracking-wider"
+                    style={{ color: tag?.color || "var(--text-muted)" }}
+                  >
+                    {tag?.name ?? "未分类"}
+                  </div>
+                  {renderTodoGroup(todos)}
+                </SectionCard>
+              ))}
+              {unscheduledUntagged.length > 0 && (
+                <SectionCard>
+                  <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                    未分类
+                  </div>
+                  {renderTodoGroup(unscheduledUntagged)}
+                </SectionCard>
+              )}
+            </div>
+          )}
+        </CollapsibleContent>
       </section>
     </aside>
   );
