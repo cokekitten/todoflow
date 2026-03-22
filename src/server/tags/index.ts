@@ -26,11 +26,17 @@ export function getTagById(id: string) {
 export function createTag(input: CreateTagInput) {
   const id = uuidv4();
 
+  const existingTags = getAllTags();
+  existingTags.forEach((tag, index) => {
+    db.update(tags).set({ sortOrder: index + 1 }).where(eq(tags.id, tag.id)).run();
+  });
+
   db.insert(tags)
     .values({
       id,
       name: input.name,
       color: input.color ?? "#7c3aed",
+      sortOrder: 0,
     })
     .run();
 

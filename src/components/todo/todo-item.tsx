@@ -1,8 +1,8 @@
 "use client";
 
-import { forwardRef, useState } from "react";
+import { forwardRef, useRef, useState } from "react";
 
-import { CheckIcon, TrashIcon } from "@/components/icons/ui-icons";
+import { CheckIcon, CloseIcon } from "@/components/icons/ui-icons";
 import { DatePopover } from "@/components/calendar/date-popover";
 import { TodoTagPopover } from "@/components/todo/todo-tag-popover";
 import type { Tag, Todo } from "@/types";
@@ -44,6 +44,43 @@ export const TodoItem = forwardRef<HTMLDivElement, TodoItemProps>(function TodoI
   const [showDateInput, setShowDateInput] = useState(false);
   const [showTagPicker, setShowTagPicker] = useState(false);
   const isCompleted = todo.completed === 1;
+  const dateButtonRef = useRef<HTMLButtonElement>(null);
+  const tagButtonRef = useRef<HTMLButtonElement>(null);
+
+  function getDateTone(date: string | null) {
+    if (!date || isCompleted) {
+      return {
+        className: "text-[var(--text-dim)] hover:text-[var(--text-secondary)]",
+        style: undefined,
+      };
+    }
+
+    const today = new Date();
+    const current = new Date(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}T00:00:00`);
+    const target = new Date(`${date}T00:00:00`);
+    const diffDays = Math.floor((current.getTime() - target.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays > 3) {
+      return {
+        className: "hover:text-[#dc2626]",
+        style: { color: "#dc2626" },
+      };
+    }
+
+    if (diffDays > 0) {
+      return {
+        className: "hover:text-[#ea580c]",
+        style: { color: "#ea580c" },
+      };
+    }
+
+    return {
+      className: "text-[var(--text-dim)] hover:text-[var(--text-secondary)]",
+      style: undefined,
+    };
+  }
+
+  const dateTone = getDateTone(todo.date);
 
   function handleSave() {
     const trimmed = editTitle.trim();
@@ -53,11 +90,6 @@ export const TodoItem = forwardRef<HTMLDivElement, TodoItemProps>(function TodoI
     }
 
     setIsEditing(false);
-  }
-
-  function handleDateSelect(event: React.ChangeEvent<HTMLInputElement>) {
-    onDateChange?.(todo.id, event.target.value || null);
-    setShowDateInput(false);
   }
 
   function handleTagToggle(tagId: string) {
@@ -124,39 +156,54 @@ export const TodoItem = forwardRef<HTMLDivElement, TodoItemProps>(function TodoI
         </span>
       )}
 
+      <div className="ml-auto flex items-center gap-2">
       {showDate && onDateChange ? (
-        <div className="relative" data-no-drag="true">
+        <div className="relative flex-shrink-0" data-no-drag="true">
           <button
+            ref={dateButtonRef}
             type="button"
             onClick={() => setShowDateInput((value) => !value)}
-            className="rounded bg-[var(--bg-primary)] px-2 py-0.5 text-[10px] text-[var(--text-dim)] hover:text-[var(--text-secondary)]"
+            className={[
+              "inline-flex h-7 items-center rounded bg-[var(--bg-primary)] px-2.5 text-[10px] leading-none",
+              dateTone.className,
+            ].join(" ")}
+            style={dateTone.style}
           >
             {todo.date || "设置日期"}
           </button>
           {showDateInput ? (
-            <DatePopover value={todo.date} onSelect={(date) => onDateChange(todo.id, date)} onClose={() => setShowDateInput(false)} />
+            <DatePopover
+              value={todo.date}
+              onSelect={(date) => onDateChange(todo.id, date)}
+              onClose={() => setShowDateInput(false)}
+              anchorRef={dateButtonRef}
+            />
           ) : null}
         </div>
       ) : null}
 
       {showDate && !onDateChange && todo.date ? (
-        <span className="rounded bg-[var(--bg-primary)] px-2 py-0.5 text-[10px] text-[var(--text-dim)]">
+        <span
+          className={["rounded bg-[var(--bg-primary)] px-2 py-0.5 text-[10px]", dateTone.className].join(" ")}
+          style={dateTone.style}
+        >
           {todo.date}
         </span>
       ) : null}
 
       {!hideTags ? (
-        <div className="relative" data-no-drag="true">
+        <div className="relative flex-shrink-0" data-no-drag="true">
           <button
+            ref={tagButtonRef}
             type="button"
             onClick={() => setShowTagPicker((value) => !value)}
-            className="flex flex-wrap items-center gap-1"
+            className="inline-flex min-h-7 items-center gap-1 rounded bg-[var(--bg-primary)] px-2.5 py-1 text-[10px] leading-none text-[var(--text-dim)] hover:text-[var(--text-secondary)]"
           >
             {todo.tags.length > 0 ? (
               todo.tags.map((tag) => (
                 <span
                   key={tag.id}
-                  className="rounded px-2 py-0.5 text-[10px]"
+                  className="rounded px-2 py-0.5 text-[10px] leading-none"
                   style={{
                     backgroundColor: `${tag.color || "#7c3aed"}20`,
                     color: tag.color || "#7c3aed",
@@ -166,7 +213,7 @@ export const TodoItem = forwardRef<HTMLDivElement, TodoItemProps>(function TodoI
                 </span>
               ))
             ) : (
-              <span className="rounded bg-[var(--bg-primary)] px-2 py-0.5 text-[10px] text-[var(--text-dim)]">
+              <span className="text-[10px] leading-none text-[var(--text-dim)]">
                 选择标签
               </span>
             )}
@@ -178,6 +225,7 @@ export const TodoItem = forwardRef<HTMLDivElement, TodoItemProps>(function TodoI
               selectedTagIds={todo.tags.map((tag) => tag.id)}
               onToggle={handleTagToggle}
               onClose={() => setShowTagPicker(false)}
+              anchorRef={tagButtonRef}
             />
           ) : null}
         </div>
@@ -189,8 +237,9 @@ export const TodoItem = forwardRef<HTMLDivElement, TodoItemProps>(function TodoI
         onClick={() => onDelete(todo.id)}
         className="text-[var(--text-dim)] opacity-0 transition-opacity group-hover:opacity-100 hover:text-[var(--danger)]"
       >
-        <TrashIcon className="h-3.5 w-3.5" />
+        <CloseIcon className="h-3.5 w-3.5" />
       </button>
+      </div>
     </div>
   );
 });

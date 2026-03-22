@@ -67,11 +67,11 @@ export function useTodoActions(onMutate: () => void) {
   );
 
   const handleReorder = useCallback(
-    async (ids: string[]) => {
+    async (contextKey: string, ids: string[]) => {
       await fetch("/api/todos/reorder", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids }),
+        body: JSON.stringify({ contextKey, ids }),
       });
       // Don't call onMutate here — the parent already updated local state optimistically
       notifyTodosChanged();

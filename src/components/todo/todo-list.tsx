@@ -33,7 +33,9 @@ interface TodoListProps {
   onUpdate: (id: string, title: string) => void;
   onDateChange?: (id: string, date: string | null) => void;
   onTagIdsChange?: (id: string, tagIds: string[]) => void;
-  onReorder?: (ids: string[]) => void;
+  onReorder?: (contextKey: string, ids: string[]) => void;
+  getGroupContextKey?: (tagId: string | null) => string;
+  reorderContextKey?: string;
 }
 
 function isDragExempt(target: EventTarget | null) {
@@ -80,11 +82,13 @@ function TodoGroup({
   todos,
   enableDragSort,
   onReorder,
+  contextKey,
   itemProps,
 }: {
   todos: Todo[];
   enableDragSort: boolean;
-  onReorder?: (ids: string[]) => void;
+  onReorder?: (contextKey: string, ids: string[]) => void;
+  contextKey?: string;
   itemProps: Omit<TodoItemProps, "todo" | "style" | "isDragging" | "sortableProps">;
 }) {
   const sensors = useSensors(useSensor(TodoPointerSensor, { activationConstraint: { distance: 6 } }));
@@ -107,7 +111,9 @@ function TodoGroup({
     const reorderedIds = [...currentIds];
     const [moved] = reorderedIds.splice(oldIndex, 1);
     reorderedIds.splice(newIndex, 0, moved);
-    onReorder?.(reorderedIds);
+    if (contextKey) {
+      onReorder?.(contextKey, reorderedIds);
+    }
   }
 
   if (!enableDragSort) {
@@ -145,6 +151,8 @@ export function TodoList({
   onDateChange,
   onTagIdsChange,
   onReorder,
+  getGroupContextKey,
+  reorderContextKey,
 }: TodoListProps) {
   const [allTags, setAllTags] = useState<Tag[]>([]);
 
@@ -184,7 +192,15 @@ export function TodoList({
   }
 
   if (!groupByTag) {
-    return <TodoGroup todos={todos} enableDragSort={enableDragSort} onReorder={onReorder} itemProps={itemProps} />;
+    return (
+      <TodoGroup
+        todos={todos}
+        enableDragSort={enableDragSort}
+        onReorder={onReorder}
+        contextKey={reorderContextKey}
+        itemProps={itemProps}
+      />
+    );
   }
 
   const grouped = new Map<string, { tag: Tag; todos: Todo[] }>();
@@ -223,6 +239,7 @@ export function TodoList({
             todos={groupTodos}
             enableDragSort={enableDragSort}
             onReorder={onReorder}
+            contextKey={getGroupContextKey?.(tag.id) ?? undefined}
             itemProps={itemProps}
           />
         </div>
@@ -237,6 +254,7 @@ export function TodoList({
             todos={ungrouped}
             enableDragSort={enableDragSort}
             onReorder={onReorder}
+            contextKey={getGroupContextKey?.(null) ?? undefined}
             itemProps={itemProps}
           />
         </div>

@@ -29,7 +29,8 @@ export default function UnscheduledPage() {
     return () => window.removeEventListener(TAGS_CHANGED_EVENT, handleTagsChanged);
   }, [fetchTodos]);
 
-  const { handleToggle, handleDelete, handleUpdate, handleReorder } = useTodoActions(fetchTodos);
+  const { handleToggle, handleDelete, handleUpdate, handleTagIdsChange, handleReorder } =
+    useTodoActions(fetchTodos);
 
   async function handleDateChange(id: string, date: string | null) {
     const response = await fetch(`/api/todos/${id}`, {
@@ -47,7 +48,7 @@ export default function UnscheduledPage() {
     notifyTodosChanged();
   }
 
-  function onReorder(ids: string[]) {
+  function onReorder(contextKey: string, ids: string[]) {
     const reorderedIds = new Set(ids);
 
     setTodos((prev) => {
@@ -67,7 +68,7 @@ export default function UnscheduledPage() {
       });
     });
 
-    void handleReorder(ids);
+    void handleReorder(contextKey, ids);
   }
 
   return (
@@ -87,8 +88,10 @@ export default function UnscheduledPage() {
         onToggle={handleToggle}
         onDelete={handleDelete}
         onUpdate={handleUpdate}
+        onTagIdsChange={handleTagIdsChange}
         onDateChange={handleDateChange}
         onReorder={onReorder}
+        getGroupContextKey={(tagId) => `unscheduled:tag:${tagId ?? "none"}`}
       />
     </div>
   );

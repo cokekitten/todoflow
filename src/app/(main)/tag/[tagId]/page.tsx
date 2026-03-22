@@ -49,7 +49,7 @@ export default function TagPage() {
     useTodoActions(fetchTodos);
   const pendingCount = todos.filter((todo) => todo.completed === 0).length;
 
-  function onReorder(ids: string[]) {
+  function onReorder(contextKey: string, ids: string[]) {
     const reorderedIds = new Set(ids);
 
     setTodos((prev) => {
@@ -69,7 +69,7 @@ export default function TagPage() {
       });
     });
 
-    void handleReorder(ids);
+    void handleReorder(contextKey, ids);
   }
 
   return (
@@ -99,6 +99,7 @@ export default function TagPage() {
         onUpdate={handleUpdate}
         onDateChange={handleDateChange}
         onReorder={onReorder}
+        reorderContextKey={`tag:${tagId}`}
       />
     </div>
   );

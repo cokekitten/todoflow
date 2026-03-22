@@ -2,7 +2,7 @@ import { and, asc, desc, eq, inArray, isNull, lt } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 
 import { db, sqlite } from "../db";
-import { tags, todos, todoTags } from "../db/schema";
+import { tags, todos, todoSortContexts, todoTags } from "../db/schema";
 
 export interface CreateTodoInput {
   title: string;
@@ -29,6 +29,18 @@ export interface TodoWithTags {
   tags: { id: string; name: string; color: string | null }[];
 }
 
+export function buildTagContextKey(tagId: string) {
+  return `tag:${tagId}`;
+}
+
+export function buildDateGroupContextKey(date: string, tagId: string | null) {
+  return `date:${date}:tag:${tagId ?? "none"}`;
+}
+
+export function buildUnscheduledGroupContextKey(tagId: string | null) {
+  return `unscheduled:tag:${tagId ?? "none"}`;
+}
+
 function attachTags(todoRows: (typeof todos.$inferSelect)[]): TodoWithTags[] {
   if (todoRows.length === 0) {
     return [];
@@ -41,10 +53,12 @@ function attachTags(todoRows: (typeof todos.$inferSelect)[]): TodoWithTags[] {
       tagId: tags.id,
       tagName: tags.name,
       tagColor: tags.color,
+      tagSortOrder: tags.sortOrder,
     })
     .from(todoTags)
     .innerJoin(tags, eq(todoTags.tagId, tags.id))
     .where(inArray(todoTags.todoId, todoIds))
+    .orderBy(asc(tags.sortOrder), asc(tags.name))
     .all();
 
   const tagMap = new Map<string, { id: string; name: string; color: string | null }[]>();
@@ -67,15 +81,53 @@ function attachTags(todoRows: (typeof todos.$inferSelect)[]): TodoWithTags[] {
   }));
 }
 
-export function getTodosByDate(date: string): TodoWithTags[] {
+function getContextSortMap(contextKeys: string[]) {
+  if (contextKeys.length === 0) {
+    return new Map<string, number>();
+  }
+
   const rows = db
     .select()
-    .from(todos)
-    .where(eq(todos.date, date))
-    .orderBy(asc(todos.sortOrder), asc(todos.createdAt))
+    .from(todoSortContexts)
+    .where(inArray(todoSortContexts.contextKey, contextKeys))
     .all();
 
-  return attachTags(rows);
+  return new Map(rows.map((row) => [`${row.contextKey}:${row.todoId}`, row.sortOrder]));
+}
+
+function sortByScopedContext(
+  todoList: TodoWithTags[],
+  contextKeyForTodo: (todo: TodoWithTags) => string,
+  options?: { groupLabelForTodo?: (todo: TodoWithTags) => string },
+) {
+  const contextKeys = Array.from(new Set(todoList.map(contextKeyForTodo)));
+  const sortMap = getContextSortMap(contextKeys);
+
+  return [...todoList].sort((left, right) => {
+    const leftContext = contextKeyForTodo(left);
+    const rightContext = contextKeyForTodo(right);
+
+    if (leftContext !== rightContext) {
+      const leftGroup = options?.groupLabelForTodo?.(left) ?? leftContext;
+      const rightGroup = options?.groupLabelForTodo?.(right) ?? rightContext;
+      return leftGroup.localeCompare(rightGroup, "zh-CN");
+    }
+
+    const leftOrder = sortMap.get(`${leftContext}:${left.id}`) ?? Number.MAX_SAFE_INTEGER;
+    const rightOrder = sortMap.get(`${rightContext}:${right.id}`) ?? Number.MAX_SAFE_INTEGER;
+
+    if (leftOrder !== rightOrder) {
+      return leftOrder - rightOrder;
+    }
+
+    return left.createdAt.localeCompare(right.createdAt);
+  });
+}
+
+export function getTodosByDate(date: string): TodoWithTags[] {
+  const rows = db.select().from(todos).where(eq(todos.date, date)).orderBy(asc(todos.createdAt)).all();
+
+  return sortByScopedContext(attachTags(rows), (todo) => buildDateGroupContextKey(date, todo.tags[0]?.id ?? null));
 }
 
 export function getTodosByTag(tagId: string): TodoWithTags[] {
@@ -90,25 +142,15 @@ export function getTodosByTag(tagId: string): TodoWithTags[] {
     return [];
   }
 
-  const rows = db
-    .select()
-    .from(todos)
-    .where(inArray(todos.id, todoIds))
-    .orderBy(desc(todos.date), asc(todos.sortOrder), asc(todos.createdAt))
-    .all();
+  const rows = db.select().from(todos).where(inArray(todos.id, todoIds)).orderBy(desc(todos.date), asc(todos.createdAt)).all();
 
-  return attachTags(rows);
+  return sortByScopedContext(attachTags(rows), () => buildTagContextKey(tagId));
 }
 
 export function getUnscheduledTodos(): TodoWithTags[] {
-  const rows = db
-    .select()
-    .from(todos)
-    .where(isNull(todos.date))
-    .orderBy(asc(todos.sortOrder), asc(todos.createdAt))
-    .all();
+  const rows = db.select().from(todos).where(isNull(todos.date)).orderBy(asc(todos.createdAt)).all();
 
-  return attachTags(rows);
+  return sortByScopedContext(attachTags(rows), (todo) => buildUnscheduledGroupContextKey(todo.tags[0]?.id ?? null));
 }
 
 export function getOverdueTodos(today: string): TodoWithTags[] {
@@ -116,7 +158,7 @@ export function getOverdueTodos(today: string): TodoWithTags[] {
     .select()
     .from(todos)
     .where(and(lt(todos.date, today), eq(todos.completed, 0)))
-    .orderBy(asc(todos.date), asc(todos.sortOrder), asc(todos.createdAt))
+    .orderBy(asc(todos.date), asc(todos.createdAt))
     .all();
 
   return attachTags(rows);
@@ -213,6 +255,20 @@ export function updateTodo(id: string, input: UpdateTodoInput): TodoWithTags | n
   return getTodoById(id);
 }
 
+export function persistTodoContextOrder(contextKey: string, ids: string[]) {
+  db.delete(todoSortContexts).where(eq(todoSortContexts.contextKey, contextKey)).run();
+
+  ids.forEach((id, index) => {
+    db.insert(todoSortContexts)
+      .values({
+        contextKey,
+        todoId: id,
+        sortOrder: index,
+      })
+      .run();
+  });
+}
+
 export function deleteTodo(id: string): boolean {
   const result = db.delete(todos).where(eq(todos.id, id)).run();
   return result.changes > 0;
@@ -223,8 +279,8 @@ export function getUncompletedTodosByDate(date: string): TodoWithTags[] {
     .select()
     .from(todos)
     .where(and(eq(todos.date, date), eq(todos.completed, 0)))
-    .orderBy(asc(todos.sortOrder), asc(todos.createdAt))
+    .orderBy(asc(todos.createdAt))
     .all();
 
-  return attachTags(rows);
+  return sortByScopedContext(attachTags(rows), (todo) => buildDateGroupContextKey(date, todo.tags[0]?.id ?? null));
 }

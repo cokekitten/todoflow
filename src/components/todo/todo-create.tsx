@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { DatePopover } from "@/components/calendar/date-popover";
 import { CalendarIcon, EnterIcon, TagIcon } from "@/components/icons/ui-icons";
@@ -22,6 +22,8 @@ export function TodoCreate({ date, defaultTagId, onCreated }: TodoCreateProps) {
   const [draftDate, setDraftDate] = useState<string | null>(null);
   const [showTagPicker, setShowTagPicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const tagButtonRef = useRef<HTMLButtonElement>(null);
+  const dateButtonRef = useRef<HTMLButtonElement>(null);
 
   const isDatePage = Boolean(date);
   const isTagPage = Boolean(defaultTagId) && !date;
@@ -87,16 +89,25 @@ export function TodoCreate({ date, defaultTagId, onCreated }: TodoCreateProps) {
   return (
     <form onSubmit={handleSubmit} className="mb-6">
       <div className="flex items-center gap-3 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] px-3 py-2.5">
+        <input
+          type="text"
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          placeholder="添加新待办..."
+          className="min-w-0 flex-1 bg-transparent text-sm focus:outline-none"
+        />
+
         {showTagSelector ? (
-          <div className="relative" data-no-drag="true">
+          <div className="relative flex-shrink-0" data-no-drag="true">
             <button
+              ref={tagButtonRef}
               type="button"
               onClick={() => setShowTagPicker((value) => !value)}
-              className="inline-flex items-center gap-1.5 rounded-md bg-[var(--bg-primary)] px-2 py-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-[var(--bg-primary)] px-2.5 text-[11px] leading-none text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               title="选择标签"
             >
               <TagIcon className="h-3.5 w-3.5" />
-              <span className="max-w-[120px] truncate">
+              <span className="max-w-[110px] truncate">
                 {selectedTags.length > 0 ? selectedTags.map((tag) => tag.name).join("、") : "标签"}
               </span>
             </button>
@@ -106,35 +117,34 @@ export function TodoCreate({ date, defaultTagId, onCreated }: TodoCreateProps) {
                 selectedTagIds={selectedTagIds}
                 onToggle={toggleTag}
                 onClose={() => setShowTagPicker(false)}
+                anchorRef={tagButtonRef}
               />
             ) : null}
           </div>
         ) : null}
 
         {showDateSelector ? (
-          <div className="relative" data-no-drag="true">
+          <div className="relative flex-shrink-0" data-no-drag="true">
             <button
+              ref={dateButtonRef}
               type="button"
               onClick={() => setShowDatePicker((value) => !value)}
-              className="inline-flex items-center gap-1.5 rounded-md bg-[var(--bg-primary)] px-2 py-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-[var(--bg-primary)] px-2.5 text-[11px] leading-none text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               title="选择日期"
             >
               <CalendarIcon className="h-3.5 w-3.5" />
               <span>{effectiveDate || "日期"}</span>
             </button>
             {showDatePicker ? (
-              <DatePopover value={effectiveDate} onSelect={setDraftDate} onClose={() => setShowDatePicker(false)} />
+              <DatePopover
+                value={effectiveDate}
+                onSelect={setDraftDate}
+                onClose={() => setShowDatePicker(false)}
+                anchorRef={dateButtonRef}
+              />
             ) : null}
           </div>
         ) : null}
-
-        <input
-          type="text"
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          placeholder="添加新待办..."
-          className="min-w-0 flex-1 bg-transparent text-sm focus:outline-none"
-        />
 
         <button
           type="submit"

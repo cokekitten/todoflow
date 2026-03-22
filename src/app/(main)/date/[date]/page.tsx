@@ -42,7 +42,7 @@ export default function DatePage() {
     useTodoActions(fetchTodos);
   const pendingCount = todos.filter((todo) => todo.completed === 0).length;
 
-  function onReorder(ids: string[]) {
+  function onReorder(contextKey: string, ids: string[]) {
     const reorderedIds = new Set(ids);
 
     setTodos((prev) => {
@@ -62,7 +62,7 @@ export default function DatePage() {
       });
     });
 
-    void handleReorder(ids);
+    void handleReorder(contextKey, ids);
   }
 
   return (
@@ -85,6 +85,7 @@ export default function DatePage() {
         onUpdate={handleUpdate}
         onTagIdsChange={handleTagIdsChange}
         onReorder={onReorder}
+        getGroupContextKey={(tagId) => `date:${date}:tag:${tagId ?? "none"}`}
       />
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { createPortal } from "react-dom";
 
 import { ChevronLeftIcon, ChevronRightIcon, CloseIcon } from "@/components/icons/ui-icons";
 
@@ -8,9 +9,12 @@ interface DatePopoverProps {
   value: string | null;
   onSelect: (date: string | null) => void;
   onClose: () => void;
+  anchorRef?: RefObject<HTMLElement | null>;
+  align?: "left" | "right";
 }
 
 const WEEKDAY_LABELS = ["一", "二", "三", "四", "五", "六", "日"];
+const POPOVER_WIDTH = 260;
 
 function formatDate(year: number, month: number, day: number) {
   return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -20,9 +24,7 @@ function getMonthDays(year: number, month: number) {
   const firstDay = new Date(year, month, 1);
   let startWeekday = firstDay.getDay() - 1;
 
-  if (startWeekday < 0) {
-    startWeekday = 6;
-  }
+  if (startWeekday < 0) startWeekday = 6;
 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const daysInPrevMonth = new Date(year, month, 0).getDate();
@@ -49,15 +51,38 @@ function getMonthDays(year: number, month: number) {
   return days;
 }
 
-export function DatePopover({ value, onSelect, onClose }: DatePopoverProps) {
+export function DatePopover({ value, onSelect, onClose, anchorRef, align = "right" }: DatePopoverProps) {
   const initialDate = value ? new Date(`${value}T00:00:00`) : new Date();
   const [viewYear, setViewYear] = useState(initialDate.getFullYear());
   const [viewMonth, setViewMonth] = useState(initialDate.getMonth());
+  const [position, setPosition] = useState({ top: 0, left: 0 });
   const rootRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const anchor = anchorRef?.current;
+
+    if (!anchor) {
+      return;
+    }
+
+    const rect = anchor.getBoundingClientRect();
+    const nextLeft = align === "right" ? rect.right - POPOVER_WIDTH : rect.left;
+
+    setPosition({
+      top: rect.bottom + 8,
+      left: Math.max(12, Math.min(nextLeft, window.innerWidth - POPOVER_WIDTH - 12)),
+    });
+  }, [align, anchorRef]);
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
+      const anchor = anchorRef?.current;
+
+      if (
+        rootRef.current &&
+        !rootRef.current.contains(event.target as Node) &&
+        (!anchor || !anchor.contains(event.target as Node))
+      ) {
         onClose();
       }
     }
@@ -68,13 +93,28 @@ export function DatePopover({ value, onSelect, onClose }: DatePopoverProps) {
       }
     }
 
+    function handleReposition() {
+      const anchor = anchorRef?.current;
+      if (!anchor) return;
+      const rect = anchor.getBoundingClientRect();
+      const nextLeft = align === "right" ? rect.right - POPOVER_WIDTH : rect.left;
+      setPosition({
+        top: rect.bottom + 8,
+        left: Math.max(12, Math.min(nextLeft, window.innerWidth - POPOVER_WIDTH - 12)),
+      });
+    }
+
     document.addEventListener("mousedown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("resize", handleReposition);
+    window.addEventListener("scroll", handleReposition, true);
     return () => {
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("resize", handleReposition);
+      window.removeEventListener("scroll", handleReposition, true);
     };
-  }, [onClose]);
+  }, [align, anchorRef, onClose]);
 
   const days = useMemo(() => getMonthDays(viewYear, viewMonth), [viewMonth, viewYear]);
 
@@ -98,10 +138,11 @@ export function DatePopover({ value, onSelect, onClose }: DatePopoverProps) {
     setViewMonth((current) => current + 1);
   }
 
-  return (
+  return createPortal(
     <div
       ref={rootRef}
-      className="absolute right-0 top-full z-30 mt-2 w-[260px] rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-3 shadow-2xl"
+      className="fixed z-[120] w-[260px] rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-3 shadow-2xl"
+      style={position}
       data-no-drag="true"
     >
       <div className="mb-3 flex items-center justify-between">
@@ -188,6 +229,7 @@ export function DatePopover({ value, onSelect, onClose }: DatePopoverProps) {
           选择今天
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

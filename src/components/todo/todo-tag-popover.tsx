@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { createPortal } from "react-dom";
 
 import { CheckIcon } from "@/components/icons/ui-icons";
 import type { Tag } from "@/types";
@@ -10,14 +11,35 @@ interface TodoTagPopoverProps {
   selectedTagIds: string[];
   onToggle: (tagId: string) => void;
   onClose: () => void;
+  anchorRef?: RefObject<HTMLElement | null>;
 }
 
-export function TodoTagPopover({ tags, selectedTagIds, onToggle, onClose }: TodoTagPopoverProps) {
+const POPOVER_WIDTH = 220;
+
+export function TodoTagPopover({ tags, selectedTagIds, onToggle, onClose, anchorRef }: TodoTagPopoverProps) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+
+  useLayoutEffect(() => {
+    const anchor = anchorRef?.current;
+    if (!anchor) return;
+
+    const rect = anchor.getBoundingClientRect();
+    setPosition({
+      top: rect.bottom + 8,
+      left: Math.max(12, Math.min(rect.left, window.innerWidth - POPOVER_WIDTH - 12)),
+    });
+  }, [anchorRef]);
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
+      const anchor = anchorRef?.current;
+
+      if (
+        rootRef.current &&
+        !rootRef.current.contains(event.target as Node) &&
+        (!anchor || !anchor.contains(event.target as Node))
+      ) {
         onClose();
       }
     }
@@ -28,18 +50,33 @@ export function TodoTagPopover({ tags, selectedTagIds, onToggle, onClose }: Todo
       }
     }
 
+    function handleReposition() {
+      const anchor = anchorRef?.current;
+      if (!anchor) return;
+      const rect = anchor.getBoundingClientRect();
+      setPosition({
+        top: rect.bottom + 8,
+        left: Math.max(12, Math.min(rect.left, window.innerWidth - POPOVER_WIDTH - 12)),
+      });
+    }
+
     document.addEventListener("mousedown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("resize", handleReposition);
+    window.addEventListener("scroll", handleReposition, true);
     return () => {
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("resize", handleReposition);
+      window.removeEventListener("scroll", handleReposition, true);
     };
-  }, [onClose]);
+  }, [anchorRef, onClose]);
 
-  return (
+  return createPortal(
     <div
       ref={rootRef}
-      className="absolute left-0 top-full z-30 mt-2 min-w-[180px] rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-2 shadow-2xl"
+      className="fixed z-[120] min-w-[220px] rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-2 shadow-2xl"
+      style={position}
       data-no-drag="true"
     >
       <div className="flex max-h-[220px] flex-col gap-1 overflow-y-auto">
@@ -65,6 +102,7 @@ export function TodoTagPopover({ tags, selectedTagIds, onToggle, onClose }: Todo
           );
         })}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -131,3 +131,11 @@ export function CloseIcon(props: IconProps) {
     </BaseIcon>
   );
 }
+
+export function ChevronDownIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="m6.5 9.5 5.5 5 5.5-5" />
+    </BaseIcon>
+  );
+}

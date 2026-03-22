@@ -31,6 +31,18 @@ export const todoTags = sqliteTable(
   (table) => [primaryKey({ columns: [table.todoId, table.tagId] })],
 );
 
+export const todoSortContexts = sqliteTable(
+  "todo_sort_contexts",
+  {
+    contextKey: text("context_key").notNull(),
+    todoId: text("todo_id")
+      .notNull()
+      .references(() => todos.id, { onDelete: "cascade" }),
+    sortOrder: integer("sort_order").default(0).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.contextKey, table.todoId] })],
+);
+
 export const reminderLogs = sqliteTable("reminder_logs", {
   id: text("id").primaryKey(),
   targetDate: text("target_date").notNull(),

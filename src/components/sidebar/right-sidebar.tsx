@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
+import { ChevronDownIcon } from "@/components/icons/ui-icons";
 import { notifyTodosChanged, TAGS_CHANGED_EVENT, TODOS_CHANGED_EVENT } from "@/lib/todo-events";
 import type { Todo, Tag } from "@/types";
 import { RightSidebarTodoItem } from "./right-sidebar-todo-item";
@@ -10,6 +11,9 @@ import { RightSidebarTodoItem } from "./right-sidebar-todo-item";
 const WEEKDAYS = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
 const MAX_DATES = 5;
 const MAX_TODOS_PER_GROUP = 10;
+const SECTION_STATE_KEY = "todoflow:right-sidebar-sections";
+
+type SectionKey = "upcoming" | "overdue" | "unscheduled";
 
 function SectionCard({
   children,
@@ -37,7 +41,34 @@ export function RightSidebar() {
   const [overdueTodos, setOverdueTodos] = useState<Todo[]>([]);
   const [unscheduledTodos, setUnscheduledTodos] = useState<Todo[]>([]);
   const [allTags, setAllTags] = useState<Tag[]>([]);
+  const [collapsed, setCollapsed] = useState<Record<SectionKey, boolean>>({
+    upcoming: false,
+    overdue: false,
+    unscheduled: false,
+  });
   const today = new Date().toISOString().split("T")[0];
+
+  useEffect(() => {
+    const raw = localStorage.getItem(SECTION_STATE_KEY);
+    if (!raw) return;
+
+    try {
+      const parsed = JSON.parse(raw) as Partial<Record<SectionKey, boolean>>;
+      setCollapsed({
+        upcoming: parsed.upcoming ?? false,
+        overdue: parsed.overdue ?? false,
+        unscheduled: parsed.unscheduled ?? false,
+      });
+    } catch {}
+  }, []);
+
+  function toggleSection(section: SectionKey) {
+    setCollapsed((current) => {
+      const next = { ...current, [section]: !current[section] };
+      localStorage.setItem(SECTION_STATE_KEY, JSON.stringify(next));
+      return next;
+    });
+  }
 
   const refreshSidebarData = useCallback(() => {
     // Fetch upcoming todos (we need full todo data now)
@@ -164,8 +195,18 @@ export function RightSidebar() {
     <aside className="w-[260px] flex-shrink-0 overflow-y-auto border-l border-[var(--border-default)] bg-[var(--bg-sidebar-right)] p-5">
       {/* Upcoming */}
       <section className="mb-6">
-        <h3 className="mb-3 text-sm font-semibold">即将提醒</h3>
-        {upcomingDates.length === 0 ? (
+        <button
+          type="button"
+          onClick={() => toggleSection("upcoming")}
+          className="mb-3 flex w-full items-center justify-between text-left text-sm font-semibold"
+        >
+          <span>近期待办</span>
+          <ChevronDownIcon className={[
+            "h-4 w-4 text-[var(--text-dim)] transition-transform",
+            collapsed.upcoming ? "-rotate-90" : "rotate-0",
+          ].join(" ")} />
+        </button>
+        {!collapsed.upcoming ? (upcomingDates.length === 0 ? (
           <SectionCard>
             <p className="text-xs text-[var(--text-muted)]">暂无</p>
           </SectionCard>
@@ -183,13 +224,23 @@ export function RightSidebar() {
               </SectionCard>
             ))}
           </div>
-        )}
+        )) : null}
       </section>
 
       {/* Overdue */}
       <section className="mb-6">
-        <h3 className="mb-3 text-sm font-semibold">已逾期</h3>
-        {overdueDates.length === 0 ? (
+        <button
+          type="button"
+          onClick={() => toggleSection("overdue")}
+          className="mb-3 flex w-full items-center justify-between text-left text-sm font-semibold"
+        >
+          <span>已逾期</span>
+          <ChevronDownIcon className={[
+            "h-4 w-4 text-[var(--text-dim)] transition-transform",
+            collapsed.overdue ? "-rotate-90" : "rotate-0",
+          ].join(" ")} />
+        </button>
+        {!collapsed.overdue ? (overdueDates.length === 0 ? (
           <SectionCard danger>
             <p className="text-xs text-[var(--text-muted)]">无逾期项</p>
           </SectionCard>
@@ -207,20 +258,30 @@ export function RightSidebar() {
               </SectionCard>
             ))}
           </div>
-        )}
+        )) : null}
       </section>
 
       {/* Unscheduled */}
       <section>
-        <h3 className="mb-3 text-sm font-semibold">
-          <Link href="/unscheduled" className="hover:underline">
-            未安排
-          </Link>
-          <span className="ml-2 text-xs font-normal text-[var(--text-muted)]">
-            {unscheduledTodos.length} 项
+        <button
+          type="button"
+          onClick={() => toggleSection("unscheduled")}
+          className="mb-3 flex w-full items-center justify-between text-left text-sm font-semibold"
+        >
+          <span>
+            <Link href="/unscheduled" className="hover:underline" onClick={(event) => event.stopPropagation()}>
+              未安排
+            </Link>
+            <span className="ml-2 text-xs font-normal text-[var(--text-muted)]">
+              {unscheduledTodos.length} 项
+            </span>
           </span>
-        </h3>
-        {unscheduledTodos.length === 0 ? (
+          <ChevronDownIcon className={[
+            "h-4 w-4 text-[var(--text-dim)] transition-transform",
+            collapsed.unscheduled ? "-rotate-90" : "rotate-0",
+          ].join(" ")} />
+        </button>
+        {!collapsed.unscheduled ? (unscheduledTodos.length === 0 ? (
           <SectionCard>
             <p className="text-xs text-[var(--text-muted)]">暂无</p>
           </SectionCard>
@@ -246,7 +307,7 @@ export function RightSidebar() {
               </SectionCard>
             )}
           </div>
-        )}
+        )) : null}
       </section>
     </aside>
   );
