@@ -32,7 +32,7 @@ interface TodoListProps {
   onDelete: (id: string) => void;
   onUpdate: (id: string, title: string) => void;
   onDateChange?: (id: string, date: string | null) => void;
-  onTagIdsChange?: (id: string, tagIds: string[]) => void;
+  onTagIdChange?: (id: string, tagId: string | null) => void;
   onReorder?: (contextKey: string, ids: string[]) => void;
   getGroupContextKey?: (tagId: string | null) => string;
   reorderContextKey?: string;
@@ -149,7 +149,7 @@ export function TodoList({
   onDelete,
   onUpdate,
   onDateChange,
-  onTagIdsChange,
+  onTagIdChange,
   onReorder,
   getGroupContextKey,
   reorderContextKey,
@@ -181,7 +181,7 @@ export function TodoList({
     onDelete,
     onUpdate,
     onDateChange,
-    onTagIdsChange,
+    onTagIdChange,
     availableTags: allTags,
   };
 

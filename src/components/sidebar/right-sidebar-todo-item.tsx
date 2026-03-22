@@ -29,8 +29,9 @@ export function RightSidebarTodoItem({ todo, onToggle }: RightSidebarTodoItemPro
         {isCompleted ? <CheckIcon className="h-2 w-2" /> : null}
       </button>
       <span
+        title={todo.title}
         className={[
-          "flex-1 truncate text-[11px]",
+          "flex-1 cursor-default select-none truncate text-[11px]",
           isCompleted ? "text-[var(--text-muted)] line-through" : "text-[var(--text-secondary)]",
         ].join(" ")}
       >

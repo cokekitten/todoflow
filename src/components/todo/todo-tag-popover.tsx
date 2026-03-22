@@ -8,15 +8,15 @@ import type { Tag } from "@/types";
 
 interface TodoTagPopoverProps {
   tags: Tag[];
-  selectedTagIds: string[];
-  onToggle: (tagId: string) => void;
+  selectedTagId: string | null;
+  onSelect: (tagId: string | null) => void;
   onClose: () => void;
   anchorRef?: RefObject<HTMLElement | null>;
 }
 
 const POPOVER_WIDTH = 220;
 
-export function TodoTagPopover({ tags, selectedTagIds, onToggle, onClose, anchorRef }: TodoTagPopoverProps) {
+export function TodoTagPopover({ tags, selectedTagId, onSelect, onClose, anchorRef }: TodoTagPopoverProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ top: 0, left: 0 });
 
@@ -80,14 +80,34 @@ export function TodoTagPopover({ tags, selectedTagIds, onToggle, onClose, anchor
       data-no-drag="true"
     >
       <div className="flex max-h-[220px] flex-col gap-1 overflow-y-auto">
+        <button
+          type="button"
+          onClick={() => {
+            onSelect(null);
+            onClose();
+          }}
+          className={[
+            "flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors",
+            selectedTagId === null
+              ? "bg-[var(--accent)]/12 text-[var(--text-primary)]"
+              : "text-[var(--text-secondary)] hover:bg-[var(--border-default)]",
+          ].join(" ")}
+        >
+          <span className="h-2 w-2 rounded-full bg-[var(--text-dim)]" />
+          <span className="flex-1">不设置标签</span>
+          {selectedTagId === null ? <CheckIcon className="h-3.5 w-3.5 text-[var(--accent-light)]" /> : null}
+        </button>
         {tags.map((tag) => {
-          const isSelected = selectedTagIds.includes(tag.id);
+          const isSelected = selectedTagId === tag.id;
 
           return (
             <button
               key={tag.id}
               type="button"
-              onClick={() => onToggle(tag.id)}
+              onClick={() => {
+                onSelect(tag.id);
+                onClose();
+              }}
               className={[
                 "flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors",
                 isSelected

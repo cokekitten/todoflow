@@ -18,7 +18,7 @@ interface TodoCreateProps {
 export function TodoCreate({ date, defaultTagId, onCreated }: TodoCreateProps) {
   const [title, setTitle] = useState("");
   const [allTags, setAllTags] = useState<Tag[]>([]);
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(defaultTagId ? [defaultTagId] : []);
+  const [selectedTagId, setSelectedTagId] = useState<string | null>(defaultTagId ?? null);
   const [draftDate, setDraftDate] = useState<string | null>(null);
   const [showTagPicker, setShowTagPicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -31,9 +31,9 @@ export function TodoCreate({ date, defaultTagId, onCreated }: TodoCreateProps) {
   const showDateSelector = isTagPage || (!isDatePage && !isTagPage);
 
   const effectiveDate = date ?? draftDate;
-  const selectedTags = useMemo(
-    () => allTags.filter((tag) => selectedTagIds.includes(tag.id)),
-    [allTags, selectedTagIds],
+  const selectedTag = useMemo(
+    () => allTags.find((tag) => tag.id === selectedTagId) ?? null,
+    [allTags, selectedTagId],
   );
 
   useEffect(() => {
@@ -63,7 +63,7 @@ export function TodoCreate({ date, defaultTagId, onCreated }: TodoCreateProps) {
       body: JSON.stringify({
         title: title.trim(),
         date: effectiveDate,
-        tagIds: selectedTagIds,
+        tagIds: selectedTagId ? [selectedTagId] : [],
       }),
     });
 
@@ -72,7 +72,7 @@ export function TodoCreate({ date, defaultTagId, onCreated }: TodoCreateProps) {
     }
 
     setTitle("");
-    setSelectedTagIds(defaultTagId ? [defaultTagId] : []);
+    setSelectedTagId(defaultTagId ?? null);
     setDraftDate(null);
     setShowTagPicker(false);
     setShowDatePicker(false);
@@ -80,10 +80,9 @@ export function TodoCreate({ date, defaultTagId, onCreated }: TodoCreateProps) {
     onCreated();
   }
 
-  function toggleTag(tagId: string) {
-    setSelectedTagIds((current) =>
-      current.includes(tagId) ? current.filter((id) => id !== tagId) : [...current, tagId],
-    );
+  function selectTag(tagId: string | null) {
+    setSelectedTagId(tagId);
+    setShowTagPicker(false);
   }
 
   return (
@@ -91,6 +90,7 @@ export function TodoCreate({ date, defaultTagId, onCreated }: TodoCreateProps) {
       <div className="flex items-center gap-3 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] px-3 py-2.5">
         <input
           type="text"
+          name="title"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           placeholder="添加新待办..."
@@ -108,14 +108,14 @@ export function TodoCreate({ date, defaultTagId, onCreated }: TodoCreateProps) {
             >
               <TagIcon className="h-3.5 w-3.5" />
               <span className="max-w-[110px] truncate">
-                {selectedTags.length > 0 ? selectedTags.map((tag) => tag.name).join("、") : "标签"}
+                {selectedTag?.name ?? "标签"}
               </span>
             </button>
             {showTagPicker ? (
               <TodoTagPopover
                 tags={allTags}
-                selectedTagIds={selectedTagIds}
-                onToggle={toggleTag}
+                selectedTagId={selectedTagId}
+                onSelect={selectTag}
                 onClose={() => setShowTagPicker(false)}
                 anchorRef={tagButtonRef}
               />

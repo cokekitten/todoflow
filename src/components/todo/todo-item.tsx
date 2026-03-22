@@ -4,6 +4,7 @@ import { forwardRef, useRef, useState } from "react";
 
 import { CheckIcon, CloseIcon } from "@/components/icons/ui-icons";
 import { DatePopover } from "@/components/calendar/date-popover";
+import { TodoChip } from "@/components/todo/todo-chip";
 import { TodoTagPopover } from "@/components/todo/todo-tag-popover";
 import type { Tag, Todo } from "@/types";
 
@@ -15,7 +16,7 @@ export interface TodoItemProps {
   onDelete: (id: string) => void;
   onUpdate: (id: string, title: string) => void;
   onDateChange?: (id: string, date: string | null) => void;
-  onTagIdsChange?: (id: string, tagIds: string[]) => void;
+  onTagIdChange?: (id: string, tagId: string | null) => void;
   availableTags?: Tag[];
   sortableProps?: Record<string, unknown>;
   style?: React.CSSProperties;
@@ -31,7 +32,7 @@ export const TodoItem = forwardRef<HTMLDivElement, TodoItemProps>(function TodoI
     onDelete,
     onUpdate,
     onDateChange,
-    onTagIdsChange,
+    onTagIdChange,
     availableTags = [],
     sortableProps,
     style,
@@ -92,12 +93,8 @@ export const TodoItem = forwardRef<HTMLDivElement, TodoItemProps>(function TodoI
     setIsEditing(false);
   }
 
-  function handleTagToggle(tagId: string) {
-    const nextTagIds = todo.tags.some((tag) => tag.id === tagId)
-      ? todo.tags.filter((tag) => tag.id !== tagId).map((tag) => tag.id)
-      : [...todo.tags.map((tag) => tag.id), tagId];
-
-    onTagIdsChange?.(todo.id, nextTagIds);
+  function handleTagSelect(tagId: string | null) {
+    onTagIdChange?.(todo.id, tagId);
   }
 
   return (
@@ -115,10 +112,10 @@ export const TodoItem = forwardRef<HTMLDivElement, TodoItemProps>(function TodoI
         data-no-drag="true"
         onClick={() => onToggle(todo.id, !isCompleted)}
         className={[
-          "flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border-2 transition-colors",
+          "flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border-2 transition-[border-color,background-color,color] duration-75",
           isCompleted
             ? "border-[var(--accent)] bg-[var(--accent)] text-white"
-            : "border-[var(--text-dim)] hover:border-[var(--accent)]",
+            : "border-[var(--text-dim)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/8",
         ].join(" ")}
       >
         {isCompleted ? <CheckIcon className="h-2.5 w-2.5" /> : null}
@@ -157,19 +154,17 @@ export const TodoItem = forwardRef<HTMLDivElement, TodoItemProps>(function TodoI
       )}
 
       <div className="ml-auto flex items-center gap-2">
-      {showDate && onDateChange ? (
+        {showDate && onDateChange ? (
         <div className="relative flex-shrink-0" data-no-drag="true">
           <button
             ref={dateButtonRef}
             type="button"
             onClick={() => setShowDateInput((value) => !value)}
-            className={[
-              "inline-flex h-7 items-center rounded bg-[var(--bg-primary)] px-2.5 text-[10px] leading-none",
-              dateTone.className,
-            ].join(" ")}
-            style={dateTone.style}
+            className="rounded"
           >
-            {todo.date || "设置日期"}
+            <TodoChip className={["bg-[var(--bg-primary)] hover:bg-[var(--border-default)]", dateTone.className].join(" ")} style={dateTone.style}>
+              {todo.date || "设置日期"}
+            </TodoChip>
           </button>
           {showDateInput ? (
             <DatePopover
@@ -183,12 +178,9 @@ export const TodoItem = forwardRef<HTMLDivElement, TodoItemProps>(function TodoI
       ) : null}
 
       {showDate && !onDateChange && todo.date ? (
-        <span
-          className={["rounded bg-[var(--bg-primary)] px-2 py-0.5 text-[10px]", dateTone.className].join(" ")}
-          style={dateTone.style}
-        >
+        <TodoChip className={["bg-[var(--bg-primary)]", dateTone.className].join(" ")} style={dateTone.style}>
           {todo.date}
-        </span>
+        </TodoChip>
       ) : null}
 
       {!hideTags ? (
@@ -197,33 +189,38 @@ export const TodoItem = forwardRef<HTMLDivElement, TodoItemProps>(function TodoI
             ref={tagButtonRef}
             type="button"
             onClick={() => setShowTagPicker((value) => !value)}
-            className="inline-flex min-h-7 items-center gap-1 rounded bg-[var(--bg-primary)] px-2.5 py-1 text-[10px] leading-none text-[var(--text-dim)] hover:text-[var(--text-secondary)]"
+            className="inline-flex h-7 items-center gap-1 rounded text-[10px] leading-none"
           >
-            {todo.tags.length > 0 ? (
-              todo.tags.map((tag) => (
-                <span
+            {todo.tags[0] ? (
+              (() => {
+                const tag = todo.tags[0];
+                return (
+                <TodoChip
                   key={tag.id}
-                  className="rounded px-2 py-0.5 text-[10px] leading-none"
+                  className="bg-[color:var(--tag-bg)] text-[color:var(--tag-fg)] hover:bg-[color:var(--tag-bg-hover)] hover:text-white"
                   style={{
-                    backgroundColor: `${tag.color || "#7c3aed"}20`,
-                    color: tag.color || "#7c3aed",
+                    ["--tag-bg" as string]: `${tag.color || "#7c3aed"}24`,
+                    ["--tag-bg-hover" as string]: `${tag.color || "#7c3aed"}cc`,
+                    ["--tag-fg" as string]: tag.color || "#7c3aed",
+                    boxShadow: `inset 0 0 0 1px ${tag.color || "#7c3aed"}55`,
                   }}
                 >
                   {tag.name}
-                </span>
-              ))
+                </TodoChip>
+                );
+              })()
             ) : (
-              <span className="text-[10px] leading-none text-[var(--text-dim)]">
+              <TodoChip className="bg-[var(--bg-primary)] text-[var(--text-dim)] hover:bg-[var(--border-default)] hover:text-[var(--text-secondary)]">
                 选择标签
-              </span>
+              </TodoChip>
             )}
           </button>
 
-          {showTagPicker && onTagIdsChange ? (
+          {showTagPicker && onTagIdChange ? (
             <TodoTagPopover
               tags={availableTags}
-              selectedTagIds={todo.tags.map((tag) => tag.id)}
-              onToggle={handleTagToggle}
+              selectedTagId={todo.tags[0]?.id ?? null}
+              onSelect={handleTagSelect}
               onClose={() => setShowTagPicker(false)}
               anchorRef={tagButtonRef}
             />
@@ -231,14 +228,16 @@ export const TodoItem = forwardRef<HTMLDivElement, TodoItemProps>(function TodoI
         </div>
       ) : null}
 
-      <button
-        type="button"
-        data-no-drag="true"
-        onClick={() => onDelete(todo.id)}
-        className="text-[var(--text-dim)] opacity-0 transition-opacity group-hover:opacity-100 hover:text-[var(--danger)]"
-      >
-        <CloseIcon className="h-3.5 w-3.5" />
-      </button>
+        <span className="relative flex h-4 w-4 flex-shrink-0 items-center justify-center text-transparent">
+          <button
+            type="button"
+            data-no-drag="true"
+            onClick={() => onDelete(todo.id)}
+            className="invisible absolute inset-0 opacity-0 text-[var(--text-dim)] transition-[opacity,color,visibility] duration-100 group-hover:visible group-hover:opacity-100 hover:text-[var(--danger)]"
+          >
+            <CloseIcon className="h-3.5 w-3.5" />
+          </button>
+        </span>
       </div>
     </div>
   );

@@ -38,9 +38,16 @@ export default function DatePage() {
     return () => window.removeEventListener(TAGS_CHANGED_EVENT, handleTagsChanged);
   }, [fetchTodos]);
 
-  const { handleToggle, handleDelete, handleUpdate, handleTagIdsChange, handleReorder } =
+  const { handleToggle, handleDelete, handleUpdate, handleTagIdChange, handleReorder } =
     useTodoActions(fetchTodos);
   const pendingCount = todos.filter((todo) => todo.completed === 0).length;
+
+  async function onTagIdChange(id: string, tagId: string | null) {
+    const updated = (await handleTagIdChange(id, tagId)) as Todo | null;
+    if (updated) {
+      setTodos((prev) => prev.map((todo) => (todo.id === id ? updated : todo)));
+    }
+  }
 
   function onReorder(contextKey: string, ids: string[]) {
     const reorderedIds = new Set(ids);
@@ -83,7 +90,7 @@ export default function DatePage() {
         onToggle={handleToggle}
         onDelete={handleDelete}
         onUpdate={handleUpdate}
-        onTagIdsChange={handleTagIdsChange}
+        onTagIdChange={onTagIdChange}
         onReorder={onReorder}
         getGroupContextKey={(tagId) => `date:${date}:tag:${tagId ?? "none"}`}
       />

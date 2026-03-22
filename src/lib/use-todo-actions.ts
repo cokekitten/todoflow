@@ -53,17 +53,21 @@ export function useTodoActions(onMutate: () => void) {
     [onMutate],
   );
 
-  const handleTagIdsChange = useCallback(
-    async (id: string, tagIds: string[]) => {
-      await fetch(`/api/todos/${id}`, {
+  const handleTagIdChange = useCallback(
+    async (id: string, tagId: string | null) => {
+      const response = await fetch(`/api/todos/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tagIds }),
+        body: JSON.stringify({ tagIds: tagId ? [tagId] : [] }),
       });
+      if (!response.ok) {
+        return null;
+      }
+
       notifyTodosChanged();
-      onMutate();
+      return response.json();
     },
-    [onMutate],
+    [],
   );
 
   const handleReorder = useCallback(
@@ -79,5 +83,5 @@ export function useTodoActions(onMutate: () => void) {
     [],
   );
 
-  return { handleToggle, handleDelete, handleUpdate, handleDateChange, handleTagIdsChange, handleReorder };
+  return { handleToggle, handleDelete, handleUpdate, handleDateChange, handleTagIdChange, handleReorder };
 }

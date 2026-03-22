@@ -201,12 +201,14 @@ export function RightSidebar() {
           className="mb-3 flex w-full items-center justify-between text-left text-sm font-semibold"
         >
           <span>近期待办</span>
-          <ChevronDownIcon className={[
-            "h-4 w-4 text-[var(--text-dim)] transition-transform",
-            collapsed.upcoming ? "-rotate-90" : "rotate-0",
-          ].join(" ")} />
+          <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center">
+            <ChevronDownIcon className={[
+              "h-4 w-4 text-[var(--text-dim)] transition-transform duration-150 ease-out will-change-transform motion-reduce:transition-none",
+              collapsed.upcoming ? "-rotate-90" : "rotate-0",
+            ].join(" ")} />
+          </span>
         </button>
-        {!collapsed.upcoming ? (upcomingDates.length === 0 ? (
+        {collapsed.upcoming ? null : upcomingDates.length === 0 ? (
           <SectionCard>
             <p className="text-xs text-[var(--text-muted)]">暂无</p>
           </SectionCard>
@@ -224,7 +226,7 @@ export function RightSidebar() {
               </SectionCard>
             ))}
           </div>
-        )) : null}
+        )}
       </section>
 
       {/* Overdue */}
@@ -235,12 +237,14 @@ export function RightSidebar() {
           className="mb-3 flex w-full items-center justify-between text-left text-sm font-semibold"
         >
           <span>已逾期</span>
-          <ChevronDownIcon className={[
-            "h-4 w-4 text-[var(--text-dim)] transition-transform",
-            collapsed.overdue ? "-rotate-90" : "rotate-0",
-          ].join(" ")} />
+          <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center">
+            <ChevronDownIcon className={[
+              "h-4 w-4 text-[var(--text-dim)] transition-transform duration-150 ease-out will-change-transform motion-reduce:transition-none",
+              collapsed.overdue ? "-rotate-90" : "rotate-0",
+            ].join(" ")} />
+          </span>
         </button>
-        {!collapsed.overdue ? (overdueDates.length === 0 ? (
+        {collapsed.overdue ? null : overdueDates.length === 0 ? (
           <SectionCard danger>
             <p className="text-xs text-[var(--text-muted)]">无逾期项</p>
           </SectionCard>
@@ -258,7 +262,7 @@ export function RightSidebar() {
               </SectionCard>
             ))}
           </div>
-        )) : null}
+        )}
       </section>
 
       {/* Unscheduled */}
@@ -276,12 +280,14 @@ export function RightSidebar() {
               {unscheduledTodos.length} 项
             </span>
           </span>
-          <ChevronDownIcon className={[
-            "h-4 w-4 text-[var(--text-dim)] transition-transform",
-            collapsed.unscheduled ? "-rotate-90" : "rotate-0",
-          ].join(" ")} />
+          <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center">
+            <ChevronDownIcon className={[
+              "h-4 w-4 text-[var(--text-dim)] transition-transform duration-150 ease-out will-change-transform motion-reduce:transition-none",
+              collapsed.unscheduled ? "-rotate-90" : "rotate-0",
+            ].join(" ")} />
+          </span>
         </button>
-        {!collapsed.unscheduled ? (unscheduledTodos.length === 0 ? (
+        {collapsed.unscheduled ? null : unscheduledTodos.length === 0 ? (
           <SectionCard>
             <p className="text-xs text-[var(--text-muted)]">暂无</p>
           </SectionCard>
@@ -307,7 +313,7 @@ export function RightSidebar() {
               </SectionCard>
             )}
           </div>
-        )) : null}
+        )}
       </section>
     </aside>
   );
