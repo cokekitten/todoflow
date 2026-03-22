@@ -3,14 +3,34 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
-import { TODOS_CHANGED_EVENT } from "@/lib/todo-events";
-import { notifyTodosChanged } from "@/lib/todo-events";
+import { notifyTodosChanged, TAGS_CHANGED_EVENT, TODOS_CHANGED_EVENT } from "@/lib/todo-events";
 import type { Todo, Tag } from "@/types";
 import { RightSidebarTodoItem } from "./right-sidebar-todo-item";
 
 const WEEKDAYS = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
 const MAX_DATES = 5;
 const MAX_TODOS_PER_GROUP = 10;
+
+function SectionCard({
+  children,
+  danger = false,
+}: {
+  children: React.ReactNode;
+  danger?: boolean;
+}) {
+  return (
+    <div
+      className={[
+        "rounded-xl border p-3",
+        danger
+          ? "border-[var(--danger-border)] bg-[var(--danger-bg)]"
+          : "border-[var(--border-default)] bg-[var(--bg-card)]",
+      ].join(" ")}
+    >
+      {children}
+    </div>
+  );
+}
 
 export function RightSidebar() {
   const [upcomingTodos, setUpcomingTodos] = useState<Todo[]>([]);
@@ -56,8 +76,13 @@ export function RightSidebar() {
   useEffect(() => {
     refreshSidebarData();
     function handleTodosChanged() { refreshSidebarData(); }
+    function handleTagsChanged() { refreshSidebarData(); }
     window.addEventListener(TODOS_CHANGED_EVENT, handleTodosChanged);
-    return () => { window.removeEventListener(TODOS_CHANGED_EVENT, handleTodosChanged); };
+    window.addEventListener(TAGS_CHANGED_EVENT, handleTagsChanged);
+    return () => {
+      window.removeEventListener(TODOS_CHANGED_EVENT, handleTodosChanged);
+      window.removeEventListener(TAGS_CHANGED_EVENT, handleTagsChanged);
+    };
   }, [refreshSidebarData]);
 
   async function handleToggle(id: string, completed: boolean) {
@@ -141,19 +166,21 @@ export function RightSidebar() {
       <section className="mb-6">
         <h3 className="mb-3 text-sm font-semibold">即将提醒</h3>
         {upcomingDates.length === 0 ? (
-          <p className="text-xs text-[var(--text-muted)]">暂无</p>
+          <SectionCard>
+            <p className="text-xs text-[var(--text-muted)]">暂无</p>
+          </SectionCard>
         ) : (
           <div className="flex flex-col gap-3">
             {upcomingDates.map((date) => (
-              <div key={date}>
+              <SectionCard key={date}>
                 <Link
                   href={`/date/${date}`}
-                  className="mb-1 block text-xs font-semibold text-[var(--accent-light)] hover:underline"
+                  className="mb-2 block text-xs font-semibold text-[var(--accent-light)] hover:underline"
                 >
                   {formatDate(date)}
                 </Link>
                 {renderTodoGroup(upcomingByDate.get(date) ?? [])}
-              </div>
+              </SectionCard>
             ))}
           </div>
         )}
@@ -163,19 +190,21 @@ export function RightSidebar() {
       <section className="mb-6">
         <h3 className="mb-3 text-sm font-semibold">已逾期</h3>
         {overdueDates.length === 0 ? (
-          <p className="text-xs text-[var(--text-muted)]">无逾期项</p>
+          <SectionCard danger>
+            <p className="text-xs text-[var(--text-muted)]">无逾期项</p>
+          </SectionCard>
         ) : (
           <div className="flex flex-col gap-3">
             {overdueDates.map((date) => (
-              <div key={date} className="rounded-lg border border-[var(--danger-border)] bg-[var(--danger-bg)] p-2.5">
+              <SectionCard key={date} danger>
                 <Link
                   href={`/date/${date}`}
-                  className="mb-1 block text-xs font-semibold text-[var(--danger)] hover:underline"
+                  className="mb-2 block text-xs font-semibold text-[var(--danger)] hover:underline"
                 >
                   {formatDate(date)} · 逾期{daysOverdue(date)}天
                 </Link>
                 {renderTodoGroup(overdueByDate.get(date) ?? [])}
-              </div>
+              </SectionCard>
             ))}
           </div>
         )}
@@ -192,27 +221,29 @@ export function RightSidebar() {
           </span>
         </h3>
         {unscheduledTodos.length === 0 ? (
-          <p className="text-xs text-[var(--text-muted)]">暂无</p>
+          <SectionCard>
+            <p className="text-xs text-[var(--text-muted)]">暂无</p>
+          </SectionCard>
         ) : (
           <div className="flex flex-col gap-3">
             {sortedUnscheduledGroups.map(({ tag, todos }) => (
-              <div key={tag?.id ?? "untagged"}>
+              <SectionCard key={tag?.id ?? "untagged"}>
                 <div
-                  className="mb-1 text-[10px] font-semibold uppercase tracking-wider"
+                  className="mb-2 text-[10px] font-semibold uppercase tracking-wider"
                   style={{ color: tag?.color || "var(--text-muted)" }}
                 >
                   {tag?.name ?? "未分类"}
                 </div>
                 {renderTodoGroup(todos)}
-              </div>
+              </SectionCard>
             ))}
             {unscheduledUntagged.length > 0 && (
-              <div>
-                <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+              <SectionCard>
+                <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                   未分类
                 </div>
                 {renderTodoGroup(unscheduledUntagged)}
-              </div>
+              </SectionCard>
             )}
           </div>
         )}

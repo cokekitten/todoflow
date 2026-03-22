@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { notifyTodosChanged } from "@/lib/todo-events";
+import { DatePopover } from "@/components/calendar/date-popover";
+import { CalendarIcon, EnterIcon, TagIcon } from "@/components/icons/ui-icons";
+import { notifyTodosChanged, TAGS_CHANGED_EVENT } from "@/lib/todo-events";
 import type { Tag } from "@/types";
+
+import { TodoTagPopover } from "./todo-tag-popover";
 
 interface TodoCreateProps {
   date?: string | null;
@@ -15,13 +19,33 @@ export function TodoCreate({ date, defaultTagId, onCreated }: TodoCreateProps) {
   const [title, setTitle] = useState("");
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(defaultTagId ? [defaultTagId] : []);
+  const [draftDate, setDraftDate] = useState<string | null>(null);
   const [showTagPicker, setShowTagPicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const isDatePage = Boolean(date);
+  const isTagPage = Boolean(defaultTagId) && !date;
+  const showTagSelector = isDatePage || (!isDatePage && !isTagPage);
+  const showDateSelector = isTagPage || (!isDatePage && !isTagPage);
+
+  const effectiveDate = date ?? draftDate;
+  const selectedTags = useMemo(
+    () => allTags.filter((tag) => selectedTagIds.includes(tag.id)),
+    [allTags, selectedTagIds],
+  );
 
   useEffect(() => {
-    fetch("/api/tags")
-      .then((response) => response.json())
-      .then((data: Tag[]) => setAllTags(data))
-      .catch(() => undefined);
+    function fetchTags() {
+      fetch("/api/tags")
+        .then((response) => response.json())
+        .then((data: Tag[]) => setAllTags(data))
+        .catch(() => undefined);
+    }
+
+    fetchTags();
+    window.addEventListener(TAGS_CHANGED_EVENT, fetchTags);
+
+    return () => window.removeEventListener(TAGS_CHANGED_EVENT, fetchTags);
   }, []);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -36,7 +60,7 @@ export function TodoCreate({ date, defaultTagId, onCreated }: TodoCreateProps) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: title.trim(),
-        date: date ?? null,
+        date: effectiveDate,
         tagIds: selectedTagIds,
       }),
     });
@@ -47,7 +71,9 @@ export function TodoCreate({ date, defaultTagId, onCreated }: TodoCreateProps) {
 
     setTitle("");
     setSelectedTagIds(defaultTagId ? [defaultTagId] : []);
+    setDraftDate(null);
     setShowTagPicker(false);
+    setShowDatePicker(false);
     notifyTodosChanged();
     onCreated();
   }
@@ -60,49 +86,64 @@ export function TodoCreate({ date, defaultTagId, onCreated }: TodoCreateProps) {
 
   return (
     <form onSubmit={handleSubmit} className="mb-6">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] px-3 py-2.5">
+        {showTagSelector ? (
+          <div className="relative" data-no-drag="true">
+            <button
+              type="button"
+              onClick={() => setShowTagPicker((value) => !value)}
+              className="inline-flex items-center gap-1.5 rounded-md bg-[var(--bg-primary)] px-2 py-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              title="选择标签"
+            >
+              <TagIcon className="h-3.5 w-3.5" />
+              <span className="max-w-[120px] truncate">
+                {selectedTags.length > 0 ? selectedTags.map((tag) => tag.name).join("、") : "标签"}
+              </span>
+            </button>
+            {showTagPicker ? (
+              <TodoTagPopover
+                tags={allTags}
+                selectedTagIds={selectedTagIds}
+                onToggle={toggleTag}
+                onClose={() => setShowTagPicker(false)}
+              />
+            ) : null}
+          </div>
+        ) : null}
+
+        {showDateSelector ? (
+          <div className="relative" data-no-drag="true">
+            <button
+              type="button"
+              onClick={() => setShowDatePicker((value) => !value)}
+              className="inline-flex items-center gap-1.5 rounded-md bg-[var(--bg-primary)] px-2 py-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              title="选择日期"
+            >
+              <CalendarIcon className="h-3.5 w-3.5" />
+              <span>{effectiveDate || "日期"}</span>
+            </button>
+            {showDatePicker ? (
+              <DatePopover value={effectiveDate} onSelect={setDraftDate} onClose={() => setShowDatePicker(false)} />
+            ) : null}
+          </div>
+        ) : null}
+
         <input
           type="text"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           placeholder="添加新待办..."
-          className="flex-1 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none"
+          className="min-w-0 flex-1 bg-transparent text-sm focus:outline-none"
         />
-        <button
-          type="button"
-          onClick={() => setShowTagPicker((value) => !value)}
-          className="rounded-lg border border-[var(--border-default)] px-2 py-2 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-          title="选择标签"
-        >
-          🏷
-        </button>
+
         <button
           type="submit"
-          className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+          className="rounded-md p-1.5 text-[var(--accent-light)] transition-colors hover:bg-[var(--border-default)]"
+          title="提交"
         >
-          添加
+          <EnterIcon className="h-4 w-4" />
         </button>
       </div>
-
-      {showTagPicker && allTags.length > 0 ? (
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {allTags.map((tag) => (
-            <button
-              key={tag.id}
-              type="button"
-              onClick={() => toggleTag(tag.id)}
-              className={[
-                "rounded-md border px-2 py-1 text-[11px] transition-colors",
-                selectedTagIds.includes(tag.id)
-                  ? "border-[var(--accent)] bg-[var(--accent)]/20 text-[var(--accent-light)]"
-                  : "border-[var(--border-default)] text-[var(--text-muted)] hover:border-[var(--text-muted)]",
-              ].join(" ")}
-            >
-              {tag.name}
-            </button>
-          ))}
-        </div>
-      ) : null}
     </form>
   );
 }

@@ -3,14 +3,15 @@
 import Link from "next/link";
 
 import { Calendar } from "@/components/calendar/calendar";
+import { MonitorIcon, MoonIcon, SettingsIcon, SunIcon } from "@/components/icons/ui-icons";
 import { TagList } from "@/components/sidebar/tag-list";
 import { useTheme } from "@/lib/theme";
 
 const THEME_CYCLE: ("dark" | "light" | "system")[] = ["dark", "light", "system"];
-const THEME_ICONS: Record<string, string> = {
-  dark: "🌙",
-  light: "☀️",
-  system: "💻",
+const THEME_ICONS: Record<string, typeof MoonIcon> = {
+  dark: MoonIcon,
+  light: SunIcon,
+  system: MonitorIcon,
 };
 const THEME_LABELS: Record<string, string> = {
   dark: "深色",
@@ -20,6 +21,7 @@ const THEME_LABELS: Record<string, string> = {
 
 export function LeftSidebar() {
   const { theme, setTheme } = useTheme();
+  const ThemeIcon = THEME_ICONS[theme];
 
   function cycleTheme() {
     const currentIndex = THEME_CYCLE.indexOf(theme);
@@ -40,17 +42,18 @@ export function LeftSidebar() {
       <div className="mt-auto flex items-center justify-between">
         <Link
           href="/settings"
-          className="text-xs text-[var(--text-dim)] hover:text-[var(--text-secondary)]"
+          className="inline-flex items-center gap-1.5 text-xs text-[var(--text-dim)] hover:text-[var(--text-secondary)]"
         >
-          ⚙ 设置
+          <SettingsIcon className="h-3.5 w-3.5" />
+          设置
         </Link>
         <button
           type="button"
           onClick={cycleTheme}
-          className="rounded px-1.5 py-1 text-xs text-[var(--text-dim)] hover:bg-[var(--border-default)] hover:text-[var(--text-secondary)]"
+          className="rounded p-1 text-xs text-[var(--text-dim)] hover:bg-[var(--border-default)] hover:text-[var(--text-secondary)]"
           title={`当前: ${THEME_LABELS[theme]}，点击切换`}
         >
-          {THEME_ICONS[theme]}
+          <ThemeIcon className="h-4 w-4" />
         </button>
       </div>
     </aside>

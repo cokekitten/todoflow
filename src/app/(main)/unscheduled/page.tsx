@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { TodoCreate } from "@/components/todo/todo-create";
 import { TodoList } from "@/components/todo/todo-list";
+import { notifyTodosChanged, TAGS_CHANGED_EVENT } from "@/lib/todo-events";
 import { useTodoActions } from "@/lib/use-todo-actions";
 import type { Todo } from "@/types";
 
@@ -17,13 +18,55 @@ export default function UnscheduledPage() {
       .catch(() => undefined);
   }, []);
 
-  useEffect(() => { fetchTodos(); }, [fetchTodos]);
+  useEffect(() => {
+    fetchTodos();
+
+    function handleTagsChanged() {
+      fetchTodos();
+    }
+
+    window.addEventListener(TAGS_CHANGED_EVENT, handleTagsChanged);
+    return () => window.removeEventListener(TAGS_CHANGED_EVENT, handleTagsChanged);
+  }, [fetchTodos]);
 
   const { handleToggle, handleDelete, handleUpdate, handleReorder } = useTodoActions(fetchTodos);
 
+  async function handleDateChange(id: string, date: string | null) {
+    const response = await fetch(`/api/todos/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ date }),
+    });
+
+    if (!response.ok) {
+      return;
+    }
+
+    const updated = (await response.json()) as Todo;
+    setTodos((prev) => prev.map((todo) => (todo.id === id ? updated : todo)));
+    notifyTodosChanged();
+  }
+
   function onReorder(ids: string[]) {
-    const idIndexMap = new Map(ids.map((id, i) => [id, i]));
-    setTodos((prev) => [...prev].sort((a, b) => (idIndexMap.get(a.id) ?? 0) - (idIndexMap.get(b.id) ?? 0)));
+    const reorderedIds = new Set(ids);
+
+    setTodos((prev) => {
+      const reorderedTodos = ids
+        .map((id) => prev.find((todo) => todo.id === id))
+        .filter((todo): todo is Todo => Boolean(todo));
+
+      let reorderedIndex = 0;
+      return prev.map((todo) => {
+        if (!reorderedIds.has(todo.id)) {
+          return todo;
+        }
+
+        const nextTodo = reorderedTodos[reorderedIndex];
+        reorderedIndex += 1;
+        return nextTodo ?? todo;
+      });
+    });
+
     void handleReorder(ids);
   }
 
@@ -39,10 +82,12 @@ export default function UnscheduledPage() {
       <TodoList
         todos={todos}
         groupByTag
+        showDate
         enableDragSort
         onToggle={handleToggle}
         onDelete={handleDelete}
         onUpdate={handleUpdate}
+        onDateChange={handleDateChange}
         onReorder={onReorder}
       />
     </div>

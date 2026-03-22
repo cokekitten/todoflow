@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { PaletteIcon, RenameIcon, TrashIcon } from "@/components/icons/ui-icons";
 import type { Tag } from "@/types";
 import { ColorPalette } from "./color-palette";
 
@@ -93,14 +94,16 @@ export function TagContextMenu({
               onClick={() => setMode("rename")}
               className="flex w-full items-center gap-2 px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--border-default)]"
             >
-              ✏️ 重命名
+              <RenameIcon className="h-3.5 w-3.5" />
+              重命名
             </button>
             <button
               type="button"
               onClick={() => setMode("color")}
               className="flex w-full items-center gap-2 px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--border-default)]"
             >
-              🎨 更改颜色
+              <PaletteIcon className="h-3.5 w-3.5" />
+              更改颜色
             </button>
             <div className="my-1 border-t border-[var(--border-default)]" />
             <button
@@ -108,7 +111,8 @@ export function TagContextMenu({
               onClick={handleDelete}
               className="flex w-full items-center gap-2 px-3 py-2 text-xs text-[var(--danger)] hover:bg-[var(--danger-bg)]"
             >
-              🗑️ 删除
+              <TrashIcon className="h-3.5 w-3.5" />
+              删除
             </button>
           </>
         )}

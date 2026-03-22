@@ -1,24 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   DndContext,
-  closestCenter,
   PointerSensor,
+  closestCenter,
   useSensor,
   useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
-  verticalListSortingStrategy,
-  useSortable,
   arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+import { notifyTagsChanged, notifyTodosChanged, TAGS_CHANGED_EVENT } from "@/lib/todo-events";
 import type { Tag } from "@/types";
+
 import { TagContextMenu } from "./tag-context-menu";
 
 interface ContextMenuState {
@@ -36,35 +38,30 @@ function SortableTagItem({
   tag: Tag;
   isActive: boolean;
   onClick: () => void;
-  onContextMenu: (e: React.MouseEvent) => void;
+  onContextMenu: (event: React.MouseEvent) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: tag.id,
   });
 
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
   return (
-    <div ref={setNodeRef} style={style} className="flex items-center">
-      {/* Drag handle */}
-      <span
-        {...attributes}
-        {...listeners}
-        className="mr-1 flex h-6 w-4 flex-shrink-0 items-center justify-center text-[10px] text-[var(--text-dim)] opacity-0 transition-opacity group-hover/taglist:opacity-100 hover:text-[var(--text-secondary)]"
-        title="拖拽排序"
-      >
-        ⠿
-      </span>
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+      }}
+      {...attributes}
+      {...listeners}
+      className="touch-none"
+    >
       <button
         type="button"
         onClick={onClick}
         onContextMenu={onContextMenu}
         className={[
-          "flex-1 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
+          "w-full rounded-md px-2 py-1.5 text-left text-xs transition-colors",
           isActive
             ? "bg-[var(--accent)] text-white"
             : "text-[var(--text-secondary)] hover:bg-[var(--border-default)]",
@@ -85,33 +82,53 @@ export function TagList() {
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const creatingOnBlurRef = useRef(false);
   const router = useRouter();
   const pathname = usePathname();
   const activeTagId = pathname.startsWith("/tag/") ? pathname.slice(5) : null;
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-  );
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
-  useEffect(() => {
+  const fetchTags = useCallback(() => {
     fetch("/api/tags")
       .then((response) => response.json())
       .then((data: Tag[]) => setTags(data))
       .catch(() => undefined);
   }, []);
 
+  useEffect(() => {
+    fetchTags();
+
+    function handleTagsChanged() {
+      fetchTags();
+    }
+
+    window.addEventListener(TAGS_CHANGED_EVENT, handleTagsChanged);
+    return () => window.removeEventListener(TAGS_CHANGED_EVENT, handleTagsChanged);
+  }, [fetchTags]);
+
   async function handleCreate() {
-    if (!newName.trim()) return;
+    const trimmed = newName.trim();
+
+    if (!trimmed) {
+      setIsCreating(false);
+      setNewName("");
+      return;
+    }
+
     const response = await fetch("/api/tags", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newName.trim() }),
+      body: JSON.stringify({ name: trimmed }),
     });
-    if (!response.ok) return;
-    const tag = (await response.json()) as Tag;
-    setTags((current) => [...current, tag]);
+
+    if (!response.ok) {
+      return;
+    }
+
     setNewName("");
     setIsCreating(false);
+    notifyTagsChanged();
   }
 
   async function handleRename(id: string, name: string) {
@@ -120,9 +137,13 @@ export function TagList() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name }),
     });
-    if (!response.ok) return;
-    const updated = (await response.json()) as Tag;
-    setTags((current) => current.map((t) => (t.id === id ? updated : t)));
+
+    if (!response.ok) {
+      return;
+    }
+
+    notifyTagsChanged();
+    notifyTodosChanged();
   }
 
   async function handleChangeColor(id: string, color: string) {
@@ -131,18 +152,28 @@ export function TagList() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ color }),
     });
-    if (!response.ok) return;
-    const updated = (await response.json()) as Tag;
-    setTags((current) => current.map((t) => (t.id === id ? updated : t)));
+
+    if (!response.ok) {
+      return;
+    }
+
+    notifyTagsChanged();
+    notifyTodosChanged();
   }
 
   async function handleDelete(id: string) {
     const response = await fetch(`/api/tags/${id}`, { method: "DELETE" });
-    if (!response.ok) return;
-    setTags((current) => current.filter((t) => t.id !== id));
+
+    if (!response.ok) {
+      return;
+    }
+
     if (activeTagId === id) {
       router.push(`/date/${new Date().toISOString().split("T")[0]}`);
     }
+
+    notifyTagsChanged();
+    notifyTodosChanged();
   }
 
   function handleContextMenu(event: React.MouseEvent, tag: Tag) {
@@ -152,23 +183,33 @@ export function TagList() {
 
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
-    if (!over || active.id === over.id) return;
 
-    const oldIndex = tags.findIndex((t) => t.id === active.id);
-    const newIndex = tags.findIndex((t) => t.id === over.id);
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    const oldIndex = tags.findIndex((tag) => tag.id === active.id);
+    const newIndex = tags.findIndex((tag) => tag.id === over.id);
     const reordered = arrayMove(tags, oldIndex, newIndex);
     setTags(reordered);
 
-    // Persist to server
-    await fetch("/api/tags/reorder", {
+    const response = await fetch("/api/tags/reorder", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids: reordered.map((t) => t.id) }),
+      body: JSON.stringify({ ids: reordered.map((tag) => tag.id) }),
     });
+
+    if (!response.ok) {
+      fetchTags();
+      return;
+    }
+
+    notifyTagsChanged();
+    notifyTodosChanged();
   }
 
   return (
-    <div className="group/taglist">
+    <div>
       <div className="mb-2 flex items-center justify-between">
         <span className="text-[11px] uppercase tracking-wider text-[var(--text-muted)]">标签</span>
         <button
@@ -186,9 +227,24 @@ export function TagList() {
             type="text"
             value={newName}
             onChange={(event) => setNewName(event.target.value)}
+            onBlur={() => {
+              if (creatingOnBlurRef.current) {
+                creatingOnBlurRef.current = false;
+                return;
+              }
+
+              void handleCreate();
+            }}
             onKeyDown={(event) => {
-              if (event.key === "Enter") void handleCreate();
-              if (event.key === "Escape") setIsCreating(false);
+              if (event.key === "Enter") {
+                creatingOnBlurRef.current = true;
+                void handleCreate();
+              }
+
+              if (event.key === "Escape") {
+                setNewName("");
+                setIsCreating(false);
+              }
             }}
             placeholder="标签名称"
             autoFocus
@@ -198,7 +254,7 @@ export function TagList() {
       ) : null}
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={tags.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+        <SortableContext items={tags.map((tag) => tag.id)} strategy={verticalListSortingStrategy}>
           <div className="flex flex-col gap-1">
             {tags.map((tag) => (
               <SortableTagItem
@@ -206,14 +262,14 @@ export function TagList() {
                 tag={tag}
                 isActive={activeTagId === tag.id}
                 onClick={() => router.push(`/tag/${tag.id}`)}
-                onContextMenu={(e) => handleContextMenu(e, tag)}
+                onContextMenu={(event) => handleContextMenu(event, tag)}
               />
             ))}
           </div>
         </SortableContext>
       </DndContext>
 
-      {contextMenu && (
+      {contextMenu ? (
         <TagContextMenu
           tag={contextMenu.tag}
           position={{ x: contextMenu.x, y: contextMenu.y }}
@@ -222,7 +278,7 @@ export function TagList() {
           onChangeColor={handleChangeColor}
           onDelete={handleDelete}
         />
-      )}
+      ) : null}
     </div>
   );
 }

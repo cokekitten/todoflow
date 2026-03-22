@@ -11,8 +11,8 @@ export function YearPicker({ currentYear, onSelect, onClose }: YearPickerProps) 
   const years = Array.from({ length: 9 }, (_, i) => startYear + i);
 
   return (
-    <div className="absolute left-0 top-full z-20 mt-1 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] p-2 shadow-lg">
-      <div className="grid grid-cols-3 gap-1">
+    <div className="absolute left-0 top-full z-20 mt-2 min-w-[182px] rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-2 shadow-2xl">
+      <div className="grid grid-cols-3 gap-1.5">
         {years.map((year) => (
           <button
             key={year}
@@ -22,7 +22,7 @@ export function YearPicker({ currentYear, onSelect, onClose }: YearPickerProps) 
               onClose();
             }}
             className={[
-              "rounded px-2 py-1.5 text-xs transition-colors",
+              "rounded px-2 py-2 text-xs transition-colors",
               year === currentYear
                 ? "bg-[var(--accent)] text-white"
                 : "text-[var(--text-secondary)] hover:bg-[var(--border-default)]",

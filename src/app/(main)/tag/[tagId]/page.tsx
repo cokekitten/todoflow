@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 
 import { TodoCreate } from "@/components/todo/todo-create";
 import { TodoList } from "@/components/todo/todo-list";
+import { TAGS_CHANGED_EVENT } from "@/lib/todo-events";
 import { useTodoActions } from "@/lib/use-todo-actions";
 import type { Tag, Todo } from "@/types";
 
@@ -21,8 +22,7 @@ export default function TagPage() {
       .catch(() => undefined);
   }, [tagId]);
 
-  useEffect(() => {
-    fetchTodos();
+  const fetchTagInfo = useCallback(() => {
     fetch("/api/tags")
       .then((response) => response.json())
       .then((tags: Tag[]) => {
@@ -30,15 +30,45 @@ export default function TagPage() {
         setTagInfo(found);
       })
       .catch(() => undefined);
-  }, [fetchTodos, tagId]);
+  }, [tagId]);
+
+  useEffect(() => {
+    fetchTodos();
+    fetchTagInfo();
+
+    function handleTagsChanged() {
+      fetchTodos();
+      fetchTagInfo();
+    }
+
+    window.addEventListener(TAGS_CHANGED_EVENT, handleTagsChanged);
+    return () => window.removeEventListener(TAGS_CHANGED_EVENT, handleTagsChanged);
+  }, [fetchTagInfo, fetchTodos]);
 
   const { handleToggle, handleDelete, handleUpdate, handleDateChange, handleReorder } =
     useTodoActions(fetchTodos);
   const pendingCount = todos.filter((todo) => todo.completed === 0).length;
 
   function onReorder(ids: string[]) {
-    const idIndexMap = new Map(ids.map((id, i) => [id, i]));
-    setTodos((prev) => [...prev].sort((a, b) => (idIndexMap.get(a.id) ?? 0) - (idIndexMap.get(b.id) ?? 0)));
+    const reorderedIds = new Set(ids);
+
+    setTodos((prev) => {
+      const reorderedTodos = ids
+        .map((id) => prev.find((todo) => todo.id === id))
+        .filter((todo): todo is Todo => Boolean(todo));
+
+      let reorderedIndex = 0;
+      return prev.map((todo) => {
+        if (!reorderedIds.has(todo.id)) {
+          return todo;
+        }
+
+        const nextTodo = reorderedTodos[reorderedIndex];
+        reorderedIndex += 1;
+        return nextTodo ?? todo;
+      });
+    });
+
     void handleReorder(ids);
   }
 

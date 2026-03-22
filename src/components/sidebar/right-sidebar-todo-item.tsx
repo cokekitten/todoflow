@@ -1,6 +1,7 @@
 "use client";
 
 import type { Todo } from "@/types";
+import { CheckIcon } from "@/components/icons/ui-icons";
 
 interface RightSidebarTodoItemProps {
   todo: Todo;
@@ -25,7 +26,7 @@ export function RightSidebarTodoItem({ todo, onToggle }: RightSidebarTodoItemPro
             : "border-[var(--text-dim)] hover:border-[var(--accent)]",
         ].join(" ")}
       >
-        {isCompleted ? <span className="text-[8px]">✓</span> : null}
+        {isCompleted ? <CheckIcon className="h-2 w-2" /> : null}
       </button>
       <span
         className={[

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
+import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons/ui-icons";
 import { TODOS_CHANGED_EVENT } from "@/lib/todo-events";
 import { MonthPicker } from "./month-picker";
 import { YearPicker } from "./year-picker";
@@ -112,8 +113,8 @@ export function Calendar() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-2 flex items-center justify-between" ref={headerRef}>
-        <div className="relative flex items-center gap-1">
+      <div className="mb-2 flex items-center justify-between gap-2" ref={headerRef}>
+        <div className="relative flex min-w-0 flex-shrink-0 items-center gap-1">
           <button
             type="button"
             onClick={() => { setShowMonthPicker(!showMonthPicker); setShowYearPicker(false); }}
@@ -143,13 +144,13 @@ export function Calendar() {
             />
           )}
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex flex-shrink-0 items-center gap-1">
           <button
             type="button"
             onClick={goToPreviousMonth}
             className="flex h-7 w-7 items-center justify-center rounded text-sm text-[var(--text-muted)] hover:bg-[var(--border-default)] hover:text-[var(--text-primary)]"
           >
-            ‹
+            <ChevronLeftIcon className="h-4 w-4" />
           </button>
           <button
             type="button"
@@ -163,7 +164,7 @@ export function Calendar() {
             onClick={goToNextMonth}
             className="flex h-7 w-7 items-center justify-center rounded text-sm text-[var(--text-muted)] hover:bg-[var(--border-default)] hover:text-[var(--text-primary)]"
           >
-            ›
+            <ChevronRightIcon className="h-4 w-4" />
           </button>
         </div>
       </div>
