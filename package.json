@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --port 3916",
     "build": "next build",
-    "start": "next start",
+    "start": "next start --port 3916",
     "lint": "eslint",
     "test": "tsx --test src/server/**/*.test.ts",
     "db:generate": "drizzle-kit generate",

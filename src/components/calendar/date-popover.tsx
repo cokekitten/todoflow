@@ -65,20 +65,15 @@ export function DatePopover({ value, onSelect, onClose, anchorRef, align = "righ
       return;
     }
 
-    const isMobileView = window.matchMedia("(max-width: 767px)").matches;
-    if (isMobileView) {
-      setPosition({
-        top: Math.max(60, (window.innerHeight - 320) / 2),
-        left: Math.max(12, (window.innerWidth - POPOVER_WIDTH) / 2),
-      });
-      return;
-    }
-
     const rect = anchor.getBoundingClientRect();
     const nextLeft = align === "right" ? rect.right - POPOVER_WIDTH : rect.left;
-
+    const popoverHeight = 320;
+    let top = rect.bottom + 8;
+    if (top + popoverHeight > window.innerHeight - 12) {
+      top = rect.top - popoverHeight - 8;
+    }
     setPosition({
-      top: rect.bottom + 8,
+      top: Math.max(12, top),
       left: Math.max(12, Math.min(nextLeft, window.innerWidth - POPOVER_WIDTH - 12)),
     });
   }, [align, anchorRef]);
@@ -106,19 +101,15 @@ export function DatePopover({ value, onSelect, onClose, anchorRef, align = "righ
       const anchor = anchorRef?.current;
       if (!anchor) return;
 
-      const isMobileView = window.matchMedia("(max-width: 767px)").matches;
-      if (isMobileView) {
-        setPosition({
-          top: Math.max(60, (window.innerHeight - 320) / 2),
-          left: Math.max(12, (window.innerWidth - POPOVER_WIDTH) / 2),
-        });
-        return;
-      }
-
       const rect = anchor.getBoundingClientRect();
       const nextLeft = align === "right" ? rect.right - POPOVER_WIDTH : rect.left;
+      const popoverHeight = 320;
+      let top = rect.bottom + 8;
+      if (top + popoverHeight > window.innerHeight - 12) {
+        top = rect.top - popoverHeight - 8;
+      }
       setPosition({
-        top: rect.bottom + 8,
+        top: Math.max(12, top),
         left: Math.max(12, Math.min(nextLeft, window.innerWidth - POPOVER_WIDTH - 12)),
       });
     }

@@ -29,21 +29,25 @@ function getPageTitle(pathname: string): string {
   return "TodoFlow";
 }
 
-export function MobileHeader() {
+export function MobileHeader({ showLeft = true }: { showLeft?: boolean }) {
   const { openLeft, openRight } = useMobileLayout();
   const pathname = usePathname();
   const title = getPageTitle(pathname);
 
   return (
-    <header className="flex h-12 flex-shrink-0 items-center justify-between border-b border-[var(--border-default)] bg-[var(--bg-sidebar-left)] px-4 md:hidden">
-      <button
-        type="button"
-        onClick={openLeft}
-        className="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--text-secondary)] active:bg-[var(--border-default)]"
-        aria-label="打开菜单"
-      >
-        <MenuIcon className="h-5 w-5" />
-      </button>
+    <header className="flex h-12 flex-shrink-0 items-center justify-between border-b border-[var(--border-default)] bg-[var(--bg-sidebar-left)] px-4">
+      {showLeft ? (
+        <button
+          type="button"
+          onClick={openLeft}
+          className="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--text-secondary)] active:bg-[var(--border-default)]"
+          aria-label="打开菜单"
+        >
+          <MenuIcon className="h-5 w-5" />
+        </button>
+      ) : (
+        <div className="h-10 w-10" />
+      )}
       <span className="text-sm font-semibold">{title}</span>
       <button
         type="button"

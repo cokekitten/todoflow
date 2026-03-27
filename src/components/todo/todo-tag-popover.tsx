@@ -24,18 +24,14 @@ export function TodoTagPopover({ tags, selectedTagId, onSelect, onClose, anchorR
     const anchor = anchorRef?.current;
     if (!anchor) return;
 
-    const isMobileView = window.matchMedia("(max-width: 767px)").matches;
-    if (isMobileView) {
-      setPosition({
-        top: Math.max(60, (window.innerHeight - 280) / 2),
-        left: Math.max(12, (window.innerWidth - POPOVER_WIDTH) / 2),
-      });
-      return;
-    }
-
     const rect = anchor.getBoundingClientRect();
+    const popoverHeight = 280;
+    let top = rect.bottom + 8;
+    if (top + popoverHeight > window.innerHeight - 12) {
+      top = rect.top - popoverHeight - 8;
+    }
     setPosition({
-      top: rect.bottom + 8,
+      top: Math.max(12, top),
       left: Math.max(12, Math.min(rect.left, window.innerWidth - POPOVER_WIDTH - 12)),
     });
   }, [anchorRef]);
@@ -63,8 +59,13 @@ export function TodoTagPopover({ tags, selectedTagId, onSelect, onClose, anchorR
       const anchor = anchorRef?.current;
       if (!anchor) return;
       const rect = anchor.getBoundingClientRect();
+      const popoverHeight = 280;
+      let top = rect.bottom + 8;
+      if (top + popoverHeight > window.innerHeight - 12) {
+        top = rect.top - popoverHeight - 8;
+      }
       setPosition({
-        top: rect.bottom + 8,
+        top: Math.max(12, top),
         left: Math.max(12, Math.min(rect.left, window.innerWidth - POPOVER_WIDTH - 12)),
       });
     }

@@ -48,7 +48,7 @@ class TodoPointerSensor extends PointerSensor {
     {
       eventName: "onPointerDown" as const,
       handler: ({ nativeEvent }: React.PointerEvent, options: PointerSensorOptions) => {
-        if (!nativeEvent.isPrimary || nativeEvent.button !== 0 || isDragExempt(nativeEvent.target)) {
+        if (!nativeEvent.isPrimary || nativeEvent.button !== 0 || nativeEvent.pointerType === "touch" || isDragExempt(nativeEvent.target)) {
           return false;
         }
 

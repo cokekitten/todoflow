@@ -104,7 +104,7 @@ export const TodoItem = forwardRef<HTMLDivElement, TodoItemProps>(function TodoI
       style={style}
       {...sortableProps}
       className={[
-        "group flex items-center gap-1 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] px-3 py-2.5 transition-colors hover:border-[var(--accent)]/30",
+        "group flex min-w-0 items-center gap-1 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] px-3 py-2.5 transition-colors hover:border-[var(--accent)]/30",
         isDragging ? "opacity-80 shadow-lg" : "",
       ].join(" ")}
     >
@@ -144,7 +144,7 @@ export const TodoItem = forwardRef<HTMLDivElement, TodoItemProps>(function TodoI
             }
           }}
           autoFocus
-          className="flex-1 bg-transparent text-[13px] focus:outline-none"
+          className="min-w-0 flex-1 bg-transparent text-[13px] focus:outline-none"
         />
       ) : (
         <span
@@ -163,7 +163,7 @@ export const TodoItem = forwardRef<HTMLDivElement, TodoItemProps>(function TodoI
             setEditTitle(todo.title);
           }}
           className={[
-            "flex-1 cursor-text text-[13px]",
+            "min-w-0 flex-1 cursor-text truncate text-[13px]",
             isCompleted ? "text-[var(--text-muted)] line-through" : "",
           ].join(" ")}
         >

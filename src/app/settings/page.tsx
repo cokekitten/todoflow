@@ -76,7 +76,8 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl py-8">
+    <div className="min-h-screen bg-[var(--bg-primary)]">
+    <div className="mx-auto max-w-2xl px-4 py-8">
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-xl font-bold">设置</h1>
         <button
@@ -193,6 +194,7 @@ export default function SettingsPage() {
       >
         {saving ? "保存中..." : "保存设置"}
       </button>
+    </div>
     </div>
   );
 }

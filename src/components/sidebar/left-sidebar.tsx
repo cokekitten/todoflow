@@ -41,7 +41,7 @@ export function LeftSidebar({ onClose }: { onClose?: () => void } = {}) {
   }
 
   return (
-    <aside className={["flex flex-shrink-0 flex-col gap-4 overflow-y-auto bg-[var(--bg-sidebar-left)] p-4", onClose ? "w-full" : "w-[220px] border-r border-[var(--border-default)]"].join(" ")}>
+    <aside className={["flex flex-shrink-0 flex-col gap-4 overflow-y-auto bg-[var(--bg-sidebar-left)] p-4", onClose ? "h-full w-full" : "w-[220px] border-r border-[var(--border-default)]"].join(" ")}>
       <div className="text-base font-bold tracking-tight">TodoFlow_</div>
 
       <Calendar />

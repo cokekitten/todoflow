@@ -88,6 +88,15 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
+/* Hide scrollbars globally while preserving scroll behavior */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
+
 /* Global cursor fix for all interactive elements */
 button,
 a,
@@ -110,14 +119,12 @@ label[for] {
     -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;
   }
+
+  /* Prevent iOS auto-zoom on input focus (requires font-size >= 16px) */
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
 }
 
-/* Drawer overlay transition */
-.drawer-overlay {
-  transition: opacity 200ms ease-out;
-}
-
-/* Drawer panel transition */
-.drawer-panel {
-  transition: transform 200ms ease-out;
-}

@@ -251,7 +251,7 @@ export function RightSidebar({ onClose }: { onClose?: () => void } = {}) {
   }
 
   return (
-    <aside className={["flex-shrink-0 overflow-y-auto bg-[var(--bg-sidebar-right)] p-5", onClose ? "w-full" : "w-[260px] border-l border-[var(--border-default)]"].join(" ")}>
+    <aside className={["flex-shrink-0 overflow-y-auto bg-[var(--bg-sidebar-right)] p-5", onClose ? "h-full w-full" : "w-[260px] border-l border-[var(--border-default)]"].join(" ")}>
       {/* Upcoming */}
       <section className="mb-6">
         <button
@@ -259,7 +259,10 @@ export function RightSidebar({ onClose }: { onClose?: () => void } = {}) {
           onClick={() => toggleSection("upcoming")}
           className="mb-3 flex w-full items-center justify-between text-left text-sm font-semibold"
         >
-          <span>近期待办</span>
+          <span>
+            近期待办
+            <span className="ml-2 text-xs font-normal text-[var(--text-muted)]">{upcomingTodos.length} 项</span>
+          </span>
           <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center">
             <ChevronDownIcon className={[
               "h-4 w-4 text-[var(--text-dim)] transition-transform duration-150 ease-out will-change-transform motion-reduce:transition-none",
@@ -297,7 +300,10 @@ export function RightSidebar({ onClose }: { onClose?: () => void } = {}) {
           onClick={() => toggleSection("overdue")}
           className="mb-3 flex w-full items-center justify-between text-left text-sm font-semibold"
         >
-          <span>已逾期</span>
+          <span>
+            已逾期
+            <span className="ml-2 text-xs font-normal text-[var(--text-muted)]">{overdueTodos.length} 项</span>
+          </span>
           <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center">
             <ChevronDownIcon className={[
               "h-4 w-4 text-[var(--text-dim)] transition-transform duration-150 ease-out will-change-transform motion-reduce:transition-none",

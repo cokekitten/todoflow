@@ -30,7 +30,7 @@ export function SidebarDrawer({ open, onClose, side, children }: SidebarDrawerPr
       {/* Backdrop */}
       <div
         className={[
-          "drawer-overlay absolute inset-0 bg-black/50",
+          "absolute inset-0 bg-black/50 transition-opacity duration-200 ease-out",
           open ? "opacity-100" : "opacity-0",
         ].join(" ")}
         onClick={onClose}
@@ -38,7 +38,7 @@ export function SidebarDrawer({ open, onClose, side, children }: SidebarDrawerPr
       {/* Panel */}
       <div
         className={[
-          "drawer-panel absolute top-0 bottom-0 flex flex-col overflow-y-auto",
+          "absolute top-0 bottom-0 flex flex-col overflow-y-auto transition-transform duration-200 ease-out",
           side === "left" ? "left-0 w-[280px]" : "right-0 w-[300px]",
           side === "left"
             ? open ? "translate-x-0" : "-translate-x-full"
