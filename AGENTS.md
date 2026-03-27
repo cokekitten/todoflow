@@ -36,19 +36,16 @@ Fixed at **3916** (set in `package.json` dev/start scripts and `Dockerfile`).
 ## Docker Deployment
 
 ```bash
-# Build
-docker build -t todoflow .
+# Build and start (production profile)
+docker compose up -d --build
 
-# Run (mount a volume for persistent data)
-docker run -d \
-  --name todoflow \
-  -p 3916:3916 \
-  -v todoflow-data:/app/data \
-  --env-file .env.local \
-  todoflow
+# Stop
+docker compose down
 ```
 
-The container runs `drizzle-kit migrate` automatically before starting the server, so tables are created on first launch. Mount `/app/data` as a named volume to persist the SQLite database across container restarts.
+`docker-compose.yml` is treated as production deployment (`NODE_ENV=production`, `APP_ENV=production`), and persists SQLite data with the named volume `todoflow-data` mounted at `/app/data`.
+
+Optional environment variables (`CRON_SECRET`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`) can be provided from shell environment or an env file when running compose.
 
 ## Key Architecture Notes
 

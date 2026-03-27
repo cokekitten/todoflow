@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TodoFlow
 
-## Getting Started
+Personal todo app built with Next.js 16 (App Router), React 19, Tailwind CSS 4, and SQLite via Drizzle ORM.
 
-First, run the development server:
+## Local Development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run db:push   # required on first run, creates tables
+npm run dev       # http://localhost:3916
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`db:push` must run before first `dev`/`start` because schema is TypeScript-only and not auto-applied.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Copy `.env.example` to `.env.local` only if you need optional features:
 
-## Learn More
+- Password protection
+- Reminder trigger protection (`CRON_SECRET`)
+- Telegram integration
 
-To learn more about Next.js, take a look at the following resources:
+The app can run without env vars.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Docker (Production)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Use compose for deployment:
 
-## Deploy on Vercel
+```bash
+docker compose up -d --build
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Stop:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+docker compose down
+```
+
+Notes:
+
+- Compose deployment is production (`NODE_ENV=production`, `APP_ENV=production`).
+- SQLite data persists via named volume `todoflow-data` mounted to `/app/data`.
+- Container runs `drizzle-kit migrate` at startup.
+- Exposed port: `3916`.
+
+Optional env vars used by compose can come from shell or env file:
+
+- `CRON_SECRET`
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_CHAT_ID`
+
+## MCP Bridge
+
+This repo includes an MCP server for tool-based API operations:
+
+```bash
+npm run mcp:start
+```
+
+See [`mcp/README.md`](./mcp/README.md) for tool list and Claude Code configuration.

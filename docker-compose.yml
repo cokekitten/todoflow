@@ -1,0 +1,22 @@
+services:
+  todoflow:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: todoflow:latest
+    container_name: todoflow
+    restart: unless-stopped
+    ports:
+      - "3916:3916"
+    environment:
+      NODE_ENV: production
+      APP_ENV: production
+      PORT: "3916"
+      CRON_SECRET: ${CRON_SECRET:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+    volumes:
+      - todoflow-data:/app/data
+
+volumes:
+  todoflow-data:
