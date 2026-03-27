@@ -22,14 +22,14 @@ interface ColorPaletteProps {
 
 export function ColorPalette({ currentColor, onSelect }: ColorPaletteProps) {
   return (
-    <div className="grid grid-cols-6 gap-1.5 p-1">
+    <div className="grid grid-cols-6 gap-2 p-1">
       {PRESET_COLORS.map((color) => (
         <button
           key={color}
           type="button"
           onClick={() => onSelect(color)}
           className={[
-            "h-5 w-5 rounded-full transition-transform hover:scale-125",
+            "h-7 w-7 rounded-full transition-transform hover:scale-110",
             currentColor === color ? "ring-2 ring-white ring-offset-1 ring-offset-[var(--bg-card)]" : "",
           ].join(" ")}
           style={{ backgroundColor: color }}

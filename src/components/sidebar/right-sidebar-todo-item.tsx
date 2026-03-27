@@ -37,14 +37,18 @@ export function RightSidebarTodoItem({ todo, onToggle }: RightSidebarTodoItemPro
           e.stopPropagation();
           onToggle(todo.id, !isCompleted);
         }}
-        className={[
-          "flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center rounded border transition-colors",
-          isCompleted
-            ? "border-[var(--accent)] bg-[var(--accent)] text-white"
-            : "border-[var(--text-dim)] hover:border-[var(--accent)]",
-        ].join(" ")}
+        className="relative flex-shrink-0 p-1"
       >
-        {isCompleted ? <CheckIcon className="h-2 w-2" /> : null}
+        <span
+          className={[
+            "flex h-3.5 w-3.5 items-center justify-center rounded border transition-colors",
+            isCompleted
+              ? "border-[var(--accent)] bg-[var(--accent)] text-white"
+              : "border-[var(--text-dim)] hover:border-[var(--accent)]",
+          ].join(" ")}
+        >
+          {isCompleted ? <CheckIcon className="h-2 w-2" /> : null}
+        </span>
       </button>
       <span
         ref={textRef}

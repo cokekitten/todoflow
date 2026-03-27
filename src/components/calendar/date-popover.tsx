@@ -65,6 +65,15 @@ export function DatePopover({ value, onSelect, onClose, anchorRef, align = "righ
       return;
     }
 
+    const isMobileView = window.matchMedia("(max-width: 767px)").matches;
+    if (isMobileView) {
+      setPosition({
+        top: Math.max(60, (window.innerHeight - 320) / 2),
+        left: Math.max(12, (window.innerWidth - POPOVER_WIDTH) / 2),
+      });
+      return;
+    }
+
     const rect = anchor.getBoundingClientRect();
     const nextLeft = align === "right" ? rect.right - POPOVER_WIDTH : rect.left;
 
@@ -75,7 +84,7 @@ export function DatePopover({ value, onSelect, onClose, anchorRef, align = "righ
   }, [align, anchorRef]);
 
   useEffect(() => {
-    function handlePointerDown(event: MouseEvent) {
+    function handlePointerDown(event: PointerEvent) {
       const anchor = anchorRef?.current;
 
       if (
@@ -96,6 +105,16 @@ export function DatePopover({ value, onSelect, onClose, anchorRef, align = "righ
     function handleReposition() {
       const anchor = anchorRef?.current;
       if (!anchor) return;
+
+      const isMobileView = window.matchMedia("(max-width: 767px)").matches;
+      if (isMobileView) {
+        setPosition({
+          top: Math.max(60, (window.innerHeight - 320) / 2),
+          left: Math.max(12, (window.innerWidth - POPOVER_WIDTH) / 2),
+        });
+        return;
+      }
+
       const rect = anchor.getBoundingClientRect();
       const nextLeft = align === "right" ? rect.right - POPOVER_WIDTH : rect.left;
       setPosition({
@@ -104,12 +123,12 @@ export function DatePopover({ value, onSelect, onClose, anchorRef, align = "righ
       });
     }
 
-    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("pointerdown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
     window.addEventListener("resize", handleReposition);
     window.addEventListener("scroll", handleReposition, true);
     return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("resize", handleReposition);
       window.removeEventListener("scroll", handleReposition, true);
@@ -195,7 +214,7 @@ export function DatePopover({ value, onSelect, onClose, anchorRef, align = "righ
                 onClose();
               }}
               className={[
-                "rounded-md py-1.5 transition-colors",
+                "rounded-md py-2 transition-colors",
                 day.isCurrentMonth ? "text-[var(--text-secondary)]" : "text-[var(--text-dim)] opacity-40",
                 isSelected ? "bg-[var(--accent)] text-white hover:bg-[var(--accent)]" : "hover:bg-[var(--border-default)]",
               ].join(" ")}

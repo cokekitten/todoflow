@@ -24,6 +24,15 @@ export function TodoTagPopover({ tags, selectedTagId, onSelect, onClose, anchorR
     const anchor = anchorRef?.current;
     if (!anchor) return;
 
+    const isMobileView = window.matchMedia("(max-width: 767px)").matches;
+    if (isMobileView) {
+      setPosition({
+        top: Math.max(60, (window.innerHeight - 280) / 2),
+        left: Math.max(12, (window.innerWidth - POPOVER_WIDTH) / 2),
+      });
+      return;
+    }
+
     const rect = anchor.getBoundingClientRect();
     setPosition({
       top: rect.bottom + 8,
@@ -32,7 +41,7 @@ export function TodoTagPopover({ tags, selectedTagId, onSelect, onClose, anchorR
   }, [anchorRef]);
 
   useEffect(() => {
-    function handlePointerDown(event: MouseEvent) {
+    function handlePointerDown(event: PointerEvent) {
       const anchor = anchorRef?.current;
 
       if (
@@ -60,12 +69,12 @@ export function TodoTagPopover({ tags, selectedTagId, onSelect, onClose, anchorR
       });
     }
 
-    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("pointerdown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
     window.addEventListener("resize", handleReposition);
     window.addEventListener("scroll", handleReposition, true);
     return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("resize", handleReposition);
       window.removeEventListener("scroll", handleReposition, true);
@@ -87,7 +96,7 @@ export function TodoTagPopover({ tags, selectedTagId, onSelect, onClose, anchorR
             onClose();
           }}
           className={[
-            "flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors",
+            "flex items-center gap-2 rounded-lg px-2 py-2 text-left text-xs transition-colors",
             selectedTagId === null
               ? "bg-[var(--accent)]/12 text-[var(--text-primary)]"
               : "text-[var(--text-secondary)] hover:bg-[var(--border-default)]",
@@ -109,7 +118,7 @@ export function TodoTagPopover({ tags, selectedTagId, onSelect, onClose, anchorR
                 onClose();
               }}
               className={[
-                "flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors",
+                "flex items-center gap-2 rounded-lg px-2 py-2 text-left text-xs transition-colors",
                 isSelected
                   ? "bg-[var(--accent)]/12 text-[var(--text-primary)]"
                   : "text-[var(--text-secondary)] hover:bg-[var(--border-default)]",

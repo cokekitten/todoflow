@@ -84,14 +84,14 @@ export function Calendar() {
 
   // Close pickers when clicking outside
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
+    function handleClickOutside(event: PointerEvent) {
       if (headerRef.current && !headerRef.current.contains(event.target as Node)) {
         setShowMonthPicker(false);
         setShowYearPicker(false);
       }
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("pointerdown", handleClickOutside);
+    return () => document.removeEventListener("pointerdown", handleClickOutside);
   }, []);
 
   function goToPreviousMonth() {
@@ -188,7 +188,7 @@ export function Calendar() {
               type="button"
               onClick={() => router.push(`/date/${day.date}`)}
               className={[
-                "relative rounded-sm py-1 transition-colors hover:bg-[var(--border-default)]",
+                "relative rounded-sm py-1.5 transition-colors hover:bg-[var(--border-default)]",
                 day.isCurrentMonth ? "text-[var(--text-secondary)]" : "text-[var(--text-dim)] opacity-40",
                 isActive ? "bg-[var(--accent)] text-white hover:bg-[var(--accent)]" : "",
                 isToday && !isActive ? "font-bold text-[var(--accent-light)]" : "",
