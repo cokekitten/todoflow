@@ -36,16 +36,16 @@ async function main() {
   const toolMap = buildToolMap();
 
   for (const [name, tool] of Object.entries(toolMap)) {
-    server.registerTool(
+    (server as any).registerTool(
       name,
       {
         description: tool.description,
         inputSchema: tool.inputSchema,
       },
-      async (args) => {
+      async (args: unknown) => {
         const result = await tool.execute(args as never);
         return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
           isError: !result.ok,
         };
       },

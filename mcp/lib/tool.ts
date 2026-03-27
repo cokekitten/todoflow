@@ -13,4 +13,4 @@ export type ToolDefinition<TSchema extends z.ZodTypeAny = z.ZodTypeAny> = {
   execute: (args: z.infer<TSchema>) => Promise<ToolResult>;
 };
 
-export type ToolMap = Record<string, ToolDefinition>;
+export type ToolMap = Record<string, ToolDefinition<any>>;
