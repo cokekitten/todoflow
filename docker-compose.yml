@@ -27,7 +27,7 @@ services:
     environment:
       MCP_HTTP_HOST: 0.0.0.0
       MCP_HTTP_PORT: "3917"
-      TODOFLOW_BASE_URL: http://todoflow:3916
+      TODOFLOW_BASE_URL: http://host.docker.internal:3916
       TODOFLOW_NO_AUTH_ONLY: "true"
       TODOFLOW_TIMEOUT_MS: "8000"
       TODOFLOW_CRON_SECRET: ${CRON_SECRET:-}

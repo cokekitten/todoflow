@@ -8,10 +8,6 @@ const host = process.env.MCP_HTTP_HOST ?? "0.0.0.0";
 const port = Number(process.env.MCP_HTTP_PORT ?? 3917);
 
 async function main() {
-  const mcpServer = createConfiguredMcpServer();
-  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
-  await mcpServer.connect(transport);
-
   const server = createServer(async (req, res) => {
     try {
       if (req.url !== "/mcp") {
@@ -33,21 +29,28 @@ async function main() {
         return;
       }
 
+      // SDK 1.28+: stateless transport cannot be reused across requests
+      const mcpServer = createConfiguredMcpServer();
+      const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+      await mcpServer.connect(transport);
+
       const parsedBody = method === "POST" ? await parseJsonBody(req) : undefined;
       await transport.handleRequest(req, res, parsedBody);
     } catch (error) {
-      res.statusCode = 500;
-      res.setHeader("content-type", "application/json");
-      res.end(
-        JSON.stringify({
-          jsonrpc: "2.0",
-          error: {
-            code: -32603,
-            message: error instanceof Error ? error.message : "Internal server error",
-          },
-          id: null,
-        }),
-      );
+      if (!res.headersSent) {
+        res.statusCode = 500;
+        res.setHeader("content-type", "application/json");
+        res.end(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            error: {
+              code: -32603,
+              message: error instanceof Error ? error.message : "Internal server error",
+            },
+            id: null,
+          }),
+        );
+      }
     }
   });
 

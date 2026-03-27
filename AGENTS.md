@@ -49,6 +49,18 @@ Optional environment variables (`CRON_SECRET`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_C
 
 Compose also starts an MCP HTTP service on port **3917** (`/mcp`) for always-on MCP access.
 
+## MCP Client Setup (Claude and others)
+
+Only HTTP transport is supported:
+
+- Endpoint: `http://localhost:3917/mcp`
+
+### HTTP MCP clients (Claude Desktop / Claude Code HTTP / other Streamable HTTP clients)
+
+- Endpoint: `http://localhost:3917/mcp`
+- Run `docker compose up -d --build` first so `todoflow-mcp` is online.
+- If your client connects from another machine, replace `localhost` with server IP/domain and secure access via firewall/reverse proxy.
+
 ## Key Architecture Notes
 
 - **No middleware** — auth is handled inside API routes via `src/server/auth/`

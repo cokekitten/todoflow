@@ -2,13 +2,7 @@
 
 Standalone MCP adapter for TodoFlow HTTP APIs.
 
-## Start (stdio, local client spawns process)
-
-```bash
-npm run mcp:start
-```
-
-## Start (HTTP, long-running service)
+## Start
 
 ```bash
 npm run mcp:start:http
@@ -22,28 +16,14 @@ Default endpoint: `http://localhost:3917/mcp`
 - `TODOFLOW_NO_AUTH_ONLY` default: `true`
 - `TODOFLOW_TIMEOUT_MS` default: `8000`
 - `TODOFLOW_CRON_SECRET` optional fallback secret for `reminder_trigger`
-- `MCP_HTTP_HOST` default: `0.0.0.0` (HTTP mode only)
-- `MCP_HTTP_PORT` default: `3917` (HTTP mode only)
+- `MCP_HTTP_HOST` default: `0.0.0.0`
+- `MCP_HTTP_PORT` default: `3917`
 
-## Claude Code config example
+## Client endpoint
 
-```json
-{
-  "mcpServers": {
-    "todoflow": {
-      "command": "npm",
-      "args": ["run", "mcp:start"],
-      "cwd": "/ABSOLUTE/PATH/TO/todoflow",
-      "env": {
-        "TODOFLOW_BASE_URL": "http://localhost:3916",
-        "TODOFLOW_NO_AUTH_ONLY": "true"
-      }
-    }
-  }
-}
-```
+For MCP clients that support Streamable HTTP, point to:
 
-For remote/HTTP MCP clients, point to `http://<host>:3917/mcp`.
+`http://<host>:3917/mcp`
 
 ## Tools
 
