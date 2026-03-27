@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   DndContext,
   PointerSensor,
+  TouchSensor,
   closestCenter,
   useSensor,
   useSensors,
@@ -91,7 +92,10 @@ function TodoGroup({
   contextKey?: string;
   itemProps: Omit<TodoItemProps, "todo" | "style" | "isDragging" | "sortableProps">;
 }) {
-  const sensors = useSensors(useSensor(TodoPointerSensor, { activationConstraint: { distance: 6 } }));
+  const sensors = useSensors(
+    useSensor(TodoPointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+  );
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;

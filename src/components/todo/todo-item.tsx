@@ -45,6 +45,7 @@ export const TodoItem = forwardRef<HTMLDivElement, TodoItemProps>(function TodoI
   const [showDateInput, setShowDateInput] = useState(false);
   const [showTagPicker, setShowTagPicker] = useState(false);
   const isCompleted = todo.completed === 1;
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dateButtonRef = useRef<HTMLButtonElement>(null);
   const tagButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -103,7 +104,7 @@ export const TodoItem = forwardRef<HTMLDivElement, TodoItemProps>(function TodoI
       style={style}
       {...sortableProps}
       className={[
-        "group flex items-center gap-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] px-3 py-2.5 transition-colors hover:border-[var(--accent)]/30",
+        "group flex items-center gap-1 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] px-3 py-2.5 transition-colors hover:border-[var(--accent)]/30",
         isDragging ? "opacity-80 shadow-lg" : "",
       ].join(" ")}
     >
@@ -111,14 +112,18 @@ export const TodoItem = forwardRef<HTMLDivElement, TodoItemProps>(function TodoI
         type="button"
         data-no-drag="true"
         onClick={() => onToggle(todo.id, !isCompleted)}
-        className={[
-          "flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border-2 transition-[border-color,background-color,color] duration-75",
-          isCompleted
-            ? "border-[var(--accent)] bg-[var(--accent)] text-white"
-            : "border-[var(--text-dim)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/8",
-        ].join(" ")}
+        className="relative flex-shrink-0 p-1.5"
       >
-        {isCompleted ? <CheckIcon className="h-2.5 w-2.5" /> : null}
+        <span
+          className={[
+            "flex h-4 w-4 items-center justify-center rounded border-2 transition-[border-color,background-color,color] duration-75",
+            isCompleted
+              ? "border-[var(--accent)] bg-[var(--accent)] text-white"
+              : "border-[var(--text-dim)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/8",
+          ].join(" ")}
+        >
+          {isCompleted ? <CheckIcon className="h-2.5 w-2.5" /> : null}
+        </span>
       </button>
 
       {isEditing ? (
@@ -143,9 +148,22 @@ export const TodoItem = forwardRef<HTMLDivElement, TodoItemProps>(function TodoI
         />
       ) : (
         <span
-          onDoubleClick={() => setIsEditing(true)}
+          onClick={() => {
+            if (window.matchMedia("(max-width: 767px)").matches) {
+              setIsEditing(true);
+              setEditTitle(todo.title);
+            }
+          }}
+          onDoubleClick={() => {
+            if (clickTimerRef.current) {
+              clearTimeout(clickTimerRef.current);
+              clickTimerRef.current = null;
+            }
+            setIsEditing(true);
+            setEditTitle(todo.title);
+          }}
           className={[
-            "flex-1 text-[13px]",
+            "flex-1 cursor-text text-[13px]",
             isCompleted ? "text-[var(--text-muted)] line-through" : "",
           ].join(" ")}
         >
@@ -233,7 +251,7 @@ export const TodoItem = forwardRef<HTMLDivElement, TodoItemProps>(function TodoI
             type="button"
             data-no-drag="true"
             onClick={() => onDelete(todo.id)}
-            className="invisible absolute inset-0 opacity-0 text-[var(--text-dim)] transition-[opacity,color,visibility] duration-100 group-hover:visible group-hover:opacity-100 hover:text-[var(--danger)]"
+            className="absolute inset-0 text-[var(--text-dim)] transition-[opacity,color,visibility] duration-100 md:invisible md:opacity-0 md:group-hover:visible md:group-hover:opacity-100 hover:text-[var(--danger)]"
           >
             <CloseIcon className="h-3.5 w-3.5" />
           </button>
