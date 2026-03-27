@@ -139,3 +139,20 @@ export function ChevronDownIcon(props: IconProps) {
     </BaseIcon>
   );
 }
+
+export function MenuIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M4 6h16M4 12h16M4 18h16" />
+    </BaseIcon>
+  );
+}
+
+export function InfoIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <circle cx="12" cy="12" r="9.5" />
+      <path d="M12 8v.5M12 11v5" />
+    </BaseIcon>
+  );
+}

@@ -102,3 +102,22 @@ input[type="reset"],
 label[for] {
   cursor: pointer;
 }
+
+/* Disable touch callout and text selection on interactive elements for mobile */
+@media (max-width: 767px) {
+  button,
+  [role="button"] {
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Drawer overlay transition */
+.drawer-overlay {
+  transition: opacity 200ms ease-out;
+}
+
+/* Drawer panel transition */
+.drawer-panel {
+  transition: transform 200ms ease-out;
+}
