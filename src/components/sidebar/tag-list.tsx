@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   DndContext,
   PointerSensor,
+  TouchSensor,
   closestCenter,
   useSensor,
   useSensors,
@@ -38,11 +39,38 @@ function SortableTagItem({
   tag: Tag;
   isActive: boolean;
   onClick: () => void;
-  onContextMenu: (event: React.MouseEvent) => void;
+  onContextMenu: (event: React.MouseEvent | { clientX: number; clientY: number }) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: tag.id,
   });
+  const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchMoved = useRef(false);
+
+  function handleTouchStart(e: React.TouchEvent) {
+    touchMoved.current = false;
+    const touch = e.touches[0];
+    longPressRef.current = setTimeout(() => {
+      if (!touchMoved.current) {
+        onContextMenu({ clientX: touch.clientX, clientY: touch.clientY });
+      }
+    }, 500);
+  }
+
+  function handleTouchMove() {
+    touchMoved.current = true;
+    if (longPressRef.current) {
+      clearTimeout(longPressRef.current);
+      longPressRef.current = null;
+    }
+  }
+
+  function handleTouchEnd() {
+    if (longPressRef.current) {
+      clearTimeout(longPressRef.current);
+      longPressRef.current = null;
+    }
+  }
 
   return (
     <div
@@ -54,14 +82,16 @@ function SortableTagItem({
       }}
       {...attributes}
       {...listeners}
-      className="touch-none"
     >
       <button
         type="button"
         onClick={onClick}
         onContextMenu={onContextMenu}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         className={[
-          "w-full rounded-md px-2 py-1.5 text-left text-xs transition-colors",
+          "w-full rounded-md px-2 py-2 text-left text-xs transition-colors",
           isActive
             ? "bg-[var(--accent)] text-white"
             : "text-[var(--text-secondary)] hover:bg-[var(--border-default)]",
@@ -87,7 +117,10 @@ export function TagList() {
   const pathname = usePathname();
   const activeTagId = pathname.startsWith("/tag/") ? pathname.slice(5) : null;
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+  );
 
   const fetchTags = useCallback(() => {
     fetch("/api/tags")
@@ -176,8 +209,10 @@ export function TagList() {
     notifyTodosChanged();
   }
 
-  function handleContextMenu(event: React.MouseEvent, tag: Tag) {
-    event.preventDefault();
+  function handleContextMenu(event: React.MouseEvent | { clientX: number; clientY: number }, tag: Tag) {
+    if ("preventDefault" in event) {
+      event.preventDefault();
+    }
     setContextMenu({ tag, x: event.clientX, y: event.clientY });
   }
 

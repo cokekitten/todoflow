@@ -30,13 +30,13 @@ export function TagContextMenu({
 
   // Close on click outside
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
+    function handleClickOutside(event: PointerEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         onClose();
       }
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("pointerdown", handleClickOutside);
+    return () => document.removeEventListener("pointerdown", handleClickOutside);
   }, [onClose]);
 
   // Close on Escape
@@ -77,12 +77,22 @@ export function TagContextMenu({
   }
 
   // Adjust position to stay within viewport
-  const style: React.CSSProperties = {
-    position: "fixed",
-    left: position.x,
-    top: position.y,
-    zIndex: 50,
-  };
+  const isMobileView = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
+
+  const style: React.CSSProperties = isMobileView
+    ? {
+        position: "fixed",
+        left: "50%",
+        top: "50%",
+        transform: "translate(-50%, -50%)",
+        zIndex: 50,
+      }
+    : {
+        position: "fixed",
+        left: position.x,
+        top: position.y,
+        zIndex: 50,
+      };
 
   return (
     <div ref={menuRef} style={style}>
@@ -92,7 +102,7 @@ export function TagContextMenu({
             <button
               type="button"
               onClick={() => setMode("rename")}
-              className="flex w-full items-center gap-2 px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--border-default)]"
+              className="flex w-full items-center gap-2 px-3 py-2.5 text-xs text-[var(--text-secondary)] hover:bg-[var(--border-default)]"
             >
               <RenameIcon className="h-3.5 w-3.5" />
               重命名
@@ -100,7 +110,7 @@ export function TagContextMenu({
             <button
               type="button"
               onClick={() => setMode("color")}
-              className="flex w-full items-center gap-2 px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--border-default)]"
+              className="flex w-full items-center gap-2 px-3 py-2.5 text-xs text-[var(--text-secondary)] hover:bg-[var(--border-default)]"
             >
               <PaletteIcon className="h-3.5 w-3.5" />
               更改颜色
@@ -109,7 +119,7 @@ export function TagContextMenu({
             <button
               type="button"
               onClick={handleDelete}
-              className="flex w-full items-center gap-2 px-3 py-2 text-xs text-[var(--danger)] hover:bg-[var(--danger-bg)]"
+              className="flex w-full items-center gap-2 px-3 py-2.5 text-xs text-[var(--danger)] hover:bg-[var(--danger-bg)]"
             >
               <TrashIcon className="h-3.5 w-3.5" />
               删除
