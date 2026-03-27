@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
 
 import { Calendar } from "@/components/calendar/calendar";
 import { MonitorIcon, MoonIcon, SettingsIcon, SunIcon } from "@/components/icons/ui-icons";
@@ -19,8 +21,17 @@ const THEME_LABELS: Record<string, string> = {
   system: "跟随系统",
 };
 
-export function LeftSidebar() {
+export function LeftSidebar({ onClose }: { onClose?: () => void } = {}) {
   const { theme, setTheme } = useTheme();
+  const pathname = usePathname();
+  const prevPathRef = useRef(pathname);
+
+  useEffect(() => {
+    if (prevPathRef.current !== pathname && onClose) {
+      onClose();
+    }
+    prevPathRef.current = pathname;
+  }, [pathname, onClose]);
   const ThemeIcon = THEME_ICONS[theme];
 
   function cycleTheme() {
@@ -30,7 +41,7 @@ export function LeftSidebar() {
   }
 
   return (
-    <aside className="flex w-[220px] flex-shrink-0 flex-col gap-4 overflow-y-auto border-r border-[var(--border-default)] bg-[var(--bg-sidebar-left)] p-4">
+    <aside className={["flex flex-shrink-0 flex-col gap-4 overflow-y-auto bg-[var(--bg-sidebar-left)] p-4", onClose ? "w-full" : "w-[220px] border-r border-[var(--border-default)]"].join(" ")}>
       <div className="text-base font-bold tracking-tight">TodoFlow_</div>
 
       <Calendar />

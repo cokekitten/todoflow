@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ChevronDownIcon } from "@/components/icons/ui-icons";
@@ -82,7 +83,17 @@ function CollapsibleContent({
   );
 }
 
-export function RightSidebar() {
+export function RightSidebar({ onClose }: { onClose?: () => void } = {}) {
+  const pathname = usePathname();
+  const prevPathRef = useRef(pathname);
+
+  useEffect(() => {
+    if (prevPathRef.current !== pathname && onClose) {
+      onClose();
+    }
+    prevPathRef.current = pathname;
+  }, [pathname, onClose]);
+
   const [upcomingTodos, setUpcomingTodos] = useState<Todo[]>([]);
   const [overdueTodos, setOverdueTodos] = useState<Todo[]>([]);
   const [unscheduledTodos, setUnscheduledTodos] = useState<Todo[]>([]);
@@ -240,7 +251,7 @@ export function RightSidebar() {
   }
 
   return (
-    <aside className="w-[260px] flex-shrink-0 overflow-y-auto border-l border-[var(--border-default)] bg-[var(--bg-sidebar-right)] p-5">
+    <aside className={["flex-shrink-0 overflow-y-auto bg-[var(--bg-sidebar-right)] p-5", onClose ? "w-full" : "w-[260px] border-l border-[var(--border-default)]"].join(" ")}>
       {/* Upcoming */}
       <section className="mb-6">
         <button
