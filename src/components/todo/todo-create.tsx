@@ -103,11 +103,16 @@ export function TodoCreate({ date, defaultTagId, onCreated }: TodoCreateProps) {
               ref={tagButtonRef}
               type="button"
               onClick={() => setShowTagPicker((value) => !value)}
-              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-[var(--bg-primary)] px-2.5 text-[11px] leading-none text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              className={[
+                "inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[11px] leading-none",
+                selectedTag
+                  ? "bg-[var(--accent)]/15 text-[var(--accent-light)]"
+                  : "bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
+              ].join(" ")}
               title="选择标签"
             >
               <TagIcon className="h-3.5 w-3.5" />
-              <span className="max-w-[110px] truncate">
+              <span className="hidden max-w-[110px] truncate md:inline">
                 {selectedTag?.name ?? "标签"}
               </span>
             </button>
@@ -133,7 +138,7 @@ export function TodoCreate({ date, defaultTagId, onCreated }: TodoCreateProps) {
               title="选择日期"
             >
               <CalendarIcon className="h-3.5 w-3.5" />
-              <span>{effectiveDate || "日期"}</span>
+              <span className="hidden md:inline">{effectiveDate || "日期"}</span>
             </button>
             {showDatePicker ? (
               <DatePopover
