@@ -41,7 +41,8 @@ Notes:
 - Compose deployment is production (`NODE_ENV=production`, `APP_ENV=production`).
 - SQLite data persists via named volume `todoflow-data` mounted to `/app/data`.
 - Container runs `drizzle-kit migrate` at startup.
-- Exposed port: `3916`.
+- Web exposed port: `3916`.
+- MCP HTTP exposed port: `3917` (`/mcp`).
 
 Optional env vars used by compose can come from shell or env file:
 
@@ -57,4 +58,6 @@ This repo includes an MCP server for tool-based API operations:
 npm run mcp:start
 ```
 
-See [`mcp/README.md`](./mcp/README.md) for tool list and Claude Code configuration.
+For compose deployment, MCP is started as a separate `mcp` service automatically.
+
+See [`mcp/README.md`](./mcp/README.md) for transport modes and client configuration.

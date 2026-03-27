@@ -47,6 +47,8 @@ docker compose down
 
 Optional environment variables (`CRON_SECRET`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`) can be provided from shell environment or an env file when running compose.
 
+Compose also starts an MCP HTTP service on port **3917** (`/mcp`) for always-on MCP access.
+
 ## Key Architecture Notes
 
 - **No middleware** — auth is handled inside API routes via `src/server/auth/`
