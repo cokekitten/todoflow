@@ -243,6 +243,13 @@ export function updateTodo(id: string, input: UpdateTodoInput): TodoWithTags | n
   if (input.date !== undefined) updates.date = input.date;
   if (input.sortOrder !== undefined) updates.sortOrder = input.sortOrder;
 
+  if (input.date !== undefined) {
+    const isRecurring = existing.recurringId !== null && existing.recurringId !== undefined;
+    if (isRecurring && input.date !== existing.date) {
+      updates.recurringId = null;
+    }
+  }
+
   db.update(todos).set(updates).where(eq(todos.id, id)).run();
 
   if (input.tagIds !== undefined) {
