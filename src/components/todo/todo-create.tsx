@@ -7,6 +7,7 @@ import { CalendarIcon, EnterIcon, TagIcon } from "@/components/icons/ui-icons";
 import { notifyTodosChanged, TAGS_CHANGED_EVENT } from "@/lib/todo-events";
 import type { Tag } from "@/types";
 
+import { RecurringSelect, type Frequency } from "./recurring-select";
 import { TodoTagPopover } from "./todo-tag-popover";
 
 interface TodoCreateProps {
@@ -22,8 +23,12 @@ export function TodoCreate({ date, defaultTagId, onCreated }: TodoCreateProps) {
   const [draftDate, setDraftDate] = useState<string | null>(null);
   const [showTagPicker, setShowTagPicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [frequency, setFrequency] = useState<Frequency | null>(null);
+  const [endDate, setEndDate] = useState<string | null>(null);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const tagButtonRef = useRef<HTMLButtonElement>(null);
   const dateButtonRef = useRef<HTMLButtonElement>(null);
+  const endDateButtonRef = useRef<HTMLButtonElement>(null);
 
   const isDatePage = Boolean(date);
   const isTagPage = Boolean(defaultTagId) && !date;
@@ -57,14 +62,25 @@ export function TodoCreate({ date, defaultTagId, onCreated }: TodoCreateProps) {
       return;
     }
 
+    if (frequency && !effectiveDate) {
+      return;
+    }
+
+    const bodyData: Record<string, unknown> = {
+      title: title.trim(),
+      date: effectiveDate,
+      tagIds: selectedTagId ? [selectedTagId] : [],
+    };
+
+    if (frequency) {
+      bodyData.frequency = frequency;
+      bodyData.endDate = endDate;
+    }
+
     const response = await fetch("/api/todos", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: title.trim(),
-        date: effectiveDate,
-        tagIds: selectedTagId ? [selectedTagId] : [],
-      }),
+      body: JSON.stringify(bodyData),
     });
 
     if (!response.ok) {
@@ -76,6 +92,9 @@ export function TodoCreate({ date, defaultTagId, onCreated }: TodoCreateProps) {
     setDraftDate(null);
     setShowTagPicker(false);
     setShowDatePicker(false);
+    setFrequency(null);
+    setEndDate(null);
+    setShowEndDatePicker(false);
     notifyTodosChanged();
     onCreated();
   }
@@ -146,6 +165,30 @@ export function TodoCreate({ date, defaultTagId, onCreated }: TodoCreateProps) {
                 onSelect={setDraftDate}
                 onClose={() => setShowDatePicker(false)}
                 anchorRef={dateButtonRef}
+              />
+            ) : null}
+          </div>
+        ) : null}
+
+        <RecurringSelect value={frequency} onChange={setFrequency} />
+
+        {frequency ? (
+          <div className="relative flex-shrink-0" data-no-drag="true">
+            <button
+              ref={endDateButtonRef}
+              type="button"
+              onClick={() => setShowEndDatePicker((v) => !v)}
+              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-[var(--bg-primary)] px-2.5 text-[11px] leading-none text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              title="结束日期"
+            >
+              <span className="hidden md:inline">{endDate || "无结束日期"}</span>
+            </button>
+            {showEndDatePicker ? (
+              <DatePopover
+                value={endDate}
+                onSelect={setEndDate}
+                onClose={() => setShowEndDatePicker(false)}
+                anchorRef={endDateButtonRef}
               />
             ) : null}
           </div>

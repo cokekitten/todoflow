@@ -5,6 +5,7 @@ import { forwardRef, useRef, useState } from "react";
 import { CheckIcon, CloseIcon } from "@/components/icons/ui-icons";
 import { DatePopover } from "@/components/calendar/date-popover";
 import { TodoChip } from "@/components/todo/todo-chip";
+import { RecurringScopeDialog, type RecurringScope } from "@/components/todo/recurring-scope-dialog";
 import { TodoTagPopover } from "@/components/todo/todo-tag-popover";
 import type { Tag, Todo } from "@/types";
 
@@ -13,8 +14,8 @@ export interface TodoItemProps {
   showDate?: boolean;
   hideTags?: boolean;
   onToggle: (id: string, completed: boolean) => void;
-  onDelete: (id: string) => void;
-  onUpdate: (id: string, title: string) => void;
+  onDelete: (id: string, scope?: string) => void;
+  onUpdate: (id: string, title: string, scope?: string) => void;
   onDateChange?: (id: string, date: string | null) => void;
   onTagIdChange?: (id: string, tagId: string | null) => void;
   availableTags?: Tag[];
@@ -44,6 +45,10 @@ export const TodoItem = forwardRef<HTMLDivElement, TodoItemProps>(function TodoI
   const [editTitle, setEditTitle] = useState(todo.title);
   const [showDateInput, setShowDateInput] = useState(false);
   const [showTagPicker, setShowTagPicker] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [pendingTitle, setPendingTitle] = useState<string | null>(null);
+  const isRecurring = Boolean(todo.recurringId);
   const isCompleted = todo.completed === 1;
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dateButtonRef = useRef<HTMLButtonElement>(null);
@@ -86,12 +91,19 @@ export const TodoItem = forwardRef<HTMLDivElement, TodoItemProps>(function TodoI
 
   function handleSave() {
     const trimmed = editTitle.trim();
-
-    if (trimmed && trimmed !== todo.title) {
-      onUpdate(todo.id, trimmed);
+    if (!trimmed || trimmed === todo.title) {
+      setIsEditing(false);
+      return;
     }
 
-    setIsEditing(false);
+    if (isRecurring) {
+      setPendingTitle(trimmed);
+      setEditDialogOpen(true);
+      setIsEditing(false);
+    } else {
+      onUpdate(todo.id, trimmed);
+      setIsEditing(false);
+    }
   }
 
   function handleTagSelect(tagId: string | null) {
@@ -201,6 +213,10 @@ export const TodoItem = forwardRef<HTMLDivElement, TodoItemProps>(function TodoI
         </TodoChip>
       ) : null}
 
+      {isRecurring ? (
+        <span className="flex-shrink-0 text-[11px] text-[var(--text-dim)]" title="重复待办">↻</span>
+      ) : null}
+
       {!hideTags ? (
         <div className="relative flex-shrink-0" data-no-drag="true">
           <button
@@ -250,13 +266,45 @@ export const TodoItem = forwardRef<HTMLDivElement, TodoItemProps>(function TodoI
           <button
             type="button"
             data-no-drag="true"
-            onClick={() => onDelete(todo.id)}
+            onClick={() => {
+              if (isRecurring) {
+                setDeleteDialogOpen(true);
+              } else {
+                onDelete(todo.id);
+              }
+            }}
             className="absolute inset-0 text-[var(--text-dim)] transition-[opacity,color,visibility] duration-100 md:invisible md:opacity-0 md:group-hover:visible md:group-hover:opacity-100 hover:text-[var(--danger)]"
           >
             <CloseIcon className="h-3.5 w-3.5" />
           </button>
         </span>
       </div>
+
+      {deleteDialogOpen ? (
+        <RecurringScopeDialog
+          mode="delete"
+          onConfirm={(scope) => {
+            onDelete(todo.id, scope);
+            setDeleteDialogOpen(false);
+          }}
+          onCancel={() => setDeleteDialogOpen(false)}
+        />
+      ) : null}
+
+      {editDialogOpen && pendingTitle ? (
+        <RecurringScopeDialog
+          mode="edit"
+          onConfirm={(scope) => {
+            onUpdate(todo.id, pendingTitle, scope);
+            setEditDialogOpen(false);
+            setPendingTitle(null);
+          }}
+          onCancel={() => {
+            setEditDialogOpen(false);
+            setPendingTitle(null);
+          }}
+        />
+      ) : null}
     </div>
   );
 });
