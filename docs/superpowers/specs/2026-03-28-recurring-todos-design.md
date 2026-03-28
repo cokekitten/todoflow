@@ -31,9 +31,7 @@ Add recurring (repeating) todo support to TodoFlow. Users can set a todo to repe
 | `createdAt` | text, NOT NULL | ISO timestamp |
 | `updatedAt` | text, NOT NULL | ISO timestamp |
 
-| `tagIds` | text, nullable | JSON array of tag IDs (e.g., `["id1","id2"]`). Stored on template so renewal can apply tags to newly generated instances. |
-
-Tags are also applied to each generated instance via the existing `todoTags` junction table, keeping the tag system unchanged.
+Tags are not managed at the template level. All generated instances start with no tags. Users assign tags to individual instances as needed via the existing `todoTags` junction table — same as regular todos.
 
 ### Modified table: `todos`
 
@@ -55,9 +53,8 @@ When a user creates a recurring todo:
 
 1. Insert a `recurring_templates` row.
 2. Compute all occurrence dates from `startDate` to either `endDate` or `startDate + 20 years` (whichever is sooner).
-3. Batch-insert one `todos` row per occurrence date, each with `recurringId` pointing to the template.
-4. Apply the selected tags to every generated instance via `todoTags`.
-5. Set `generatedUntil` to the last generated date.
+3. Batch-insert one `todos` row per occurrence date, each with `recurringId` pointing to the template. Instances are created with no tags.
+4. Set `generatedUntil` to the last generated date.
 
 ### Date calculation rules
 
@@ -135,7 +132,7 @@ The instance becomes a standalone todo. The gap in the series is intentional —
 
 ### Change tags (on a single instance)
 
-Same as change date — detaches from series. If the user wants to change tags for all, they should do it from a "manage recurring" entry point (future enhancement).
+Tags are per-instance and independent of the recurring series. Changing tags on one instance does not affect others and does not detach it from the series. No scope dialog needed.
 
 ## UI Changes
 
@@ -182,6 +179,10 @@ Add optional parameter:
 
 - `scope`: `'this' | 'thisAndFuture' | 'all'` (default: `'this'` for recurring, ignored for regular todos)
 
+### `recurring_renew` (new tool)
+
+Extends instance generation for templates approaching their `generatedUntil` boundary. No parameters — processes all templates that need renewal. Idempotent.
+
 ## API Route Changes
 
 ### POST `/api/todos`
@@ -211,7 +212,7 @@ Extends instance generation for templates approaching their `generatedUntil` bou
 | Edit title "this and future" on the start date | Same as "modify all" |
 | User changes date of a recurring instance | Detach from series (set `recurringId = null`) |
 | Template with endDate in the past | No active instances; template remains for history. User can delete manually. |
-| Change tags on recurring instance | Detaches from series with confirmation; user sees a warning that this instance will leave the recurring group |
+| Change tags on recurring instance | Tags are per-instance; no detach, no scope dialog |
 | Concurrent renewal requests | Handled atomically — second request sees updated `generatedUntil` and skips |
 
 ## Performance Considerations
@@ -220,7 +221,7 @@ Extends instance generation for templates approaching their `generatedUntil` bou
 - **Batch update/delete:** Scoped operations use `WHERE recurringId = ? AND date >= ?`, which is efficient with an index on `(recurringId, date)`.
 - **Index:** Add a composite index on `todos(recurringId, date)` for efficient scoped queries.
 - **Index on date:** Ensure an index exists on `todos(date)` to keep date-based queries performant as row count grows with recurring instances.
-- **Row volume:** A daily recurring todo generates ~7,300 rows over 20 years, plus the same number of `todoTags` rows per tag. With 5 daily recurring todos × 2 tags each, this is ~73K todo rows + ~146K tag rows — well within SQLite's comfort zone, but worth monitoring.
+- **Row volume:** A daily recurring todo generates ~7,300 rows over 20 years. With 10 daily recurring todos, this is ~73K todo rows — well within SQLite's comfort zone, but worth monitoring.
 
 ## Migration
 
