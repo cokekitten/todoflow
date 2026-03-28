@@ -11,6 +11,10 @@ function MainLayoutInner({ children }: { children: React.ReactNode }) {
   const viewport = useViewport();
   const { leftOpen, rightOpen, closeLeft, closeRight } = useMobileLayout();
 
+  if (!viewport) {
+    return null;
+  }
+
   // Mobile (<768px): both sidebars as drawers
   if (viewport === "mobile") {
     return (

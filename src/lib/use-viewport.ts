@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 
 export type ViewportSize = "mobile" | "tablet" | "desktop";
 
-export function useViewport(): ViewportSize {
-  const [size, setSize] = useState<ViewportSize>("desktop");
+export function useViewport(): ViewportSize | null {
+  const [size, setSize] = useState<ViewportSize | null>(null);
 
   useEffect(() => {
     function update() {
