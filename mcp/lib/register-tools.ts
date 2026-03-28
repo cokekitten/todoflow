@@ -4,6 +4,7 @@ import { loadEnv } from "./env";
 import { createApiClient } from "./http";
 import type { ToolMap } from "./tool";
 import { createAuthTools } from "../tools/auth";
+import { createRecurringTools } from "../tools/recurring";
 import { createReminderTools } from "../tools/reminders";
 import { createSettingsTools } from "../tools/settings";
 import { createTagTools } from "../tools/tags";
@@ -23,6 +24,7 @@ function buildToolMap(): ToolMap {
     ...createTagTools(api),
     ...createSettingsTools(api),
     ...createReminderTools(api, { cronSecret: env.cronSecret }),
+    ...createRecurringTools(api),
   };
 }
 
