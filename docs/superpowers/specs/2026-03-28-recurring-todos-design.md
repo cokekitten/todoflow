@@ -31,7 +31,9 @@ Add recurring (repeating) todo support to TodoFlow. Users can set a todo to repe
 | `createdAt` | text, NOT NULL | ISO timestamp |
 | `updatedAt` | text, NOT NULL | ISO timestamp |
 
-Tags are not stored on the template. Instead, tags are applied to each generated instance via the existing `todoTags` junction table, keeping the tag system unchanged.
+| `tagIds` | text, nullable | JSON array of tag IDs (e.g., `["id1","id2"]`). Stored on template so renewal can apply tags to newly generated instances. |
+
+Tags are also applied to each generated instance via the existing `todoTags` junction table, keeping the tag system unchanged.
 
 ### Modified table: `todos`
 
@@ -42,6 +44,8 @@ Add one nullable column:
 | `recurringId` | text, nullable | FK → `recurring_templates.id`, ON DELETE CASCADE |
 
 Regular todos have `recurringId = null`. Recurring instances point to their template.
+
+**Note:** The existing `TodoWithTags` TypeScript interface must be extended to include `recurringId: string | null` so the UI and API responses expose this field. This is a backward-compatible addition (existing todos will have `null`).
 
 ## Instance Generation
 
@@ -60,7 +64,7 @@ When a user creates a recurring todo:
 | Frequency | Rule | Example (start: 2026-03-28) |
 |-----------|------|----------------------------|
 | `daily` | Every day | 2026-03-28, 2026-03-29, 2026-03-30, … |
-| `weekly` | Same weekday each week | Every Saturday (2026-04-04, 2026-04-11, …) |
+| `weekly` | Same day-of-week as startDate | Every Saturday (2026-04-04, 2026-04-11, …) |
 | `monthly` | Same day-of-month | 28th of each month. If month has fewer days, use last day of month (e.g., Feb 28) |
 | `yearly` | Same month and day | Every Mar 28. For Feb 29 start, use Feb 28 in non-leap years |
 
@@ -69,9 +73,13 @@ When a user creates a recurring todo:
 To handle the "forever" case beyond the initial 20-year window:
 
 - **Trigger 1 — Reminder cron:** Each time the reminder cron fires, check all templates where `endDate IS NULL` and `generatedUntil` is less than 1 year from today. If so, extend by another 20 years.
-- **Trigger 2 — Calendar browsing:** When `getDatesWithTodos(yearMonth)` is called for a month beyond `generatedUntil` for any template, generate instances up to that month + 20 years.
+- **Trigger 2 — Calendar browsing:** When `getDatesWithTodos(yearMonth)` is called for a month beyond `generatedUntil` for any template, the API returns the data as-is (no write side-effect in GET). Instead, the client detects missing coverage and fires a separate POST `/api/recurring/renew` to extend generation. This keeps GET requests pure.
 
 No additional scheduled jobs are needed; these piggyback on existing code paths.
+
+### Concurrency safety
+
+Renewal checks `generatedUntil` and updates it atomically within a single SQLite transaction. If two requests trigger renewal simultaneously, the second will see the updated `generatedUntil` and skip generation.
 
 ## Existing Query Compatibility
 
@@ -182,11 +190,15 @@ Accept optional `frequency` and `endDate` fields. When present, create template 
 
 ### DELETE `/api/todos/[id]`
 
-Accept optional `scope` query parameter. When the todo has `recurringId` and scope is provided, apply the scoped delete logic.
+Accept optional `scope` query parameter (`this | thisAndFuture | all`). When the todo has `recurringId` and scope is provided, apply the scoped delete logic.
 
 ### PATCH `/api/todos/[id]`
 
-Accept optional `scope` body field. When the todo has `recurringId` and scope is provided, apply the scoped update logic.
+Accept optional `scope` query parameter (`this | thisAndFuture | all`). When the todo has `recurringId` and scope is provided, apply the scoped update logic. (Using query parameter for consistency with DELETE.)
+
+### POST `/api/recurring/renew`
+
+Extends instance generation for templates approaching their `generatedUntil` boundary. Called by the client when browsing calendar months beyond the generated range. Idempotent — safe to call multiple times.
 
 ## Edge Cases
 
@@ -199,12 +211,16 @@ Accept optional `scope` body field. When the todo has `recurringId` and scope is
 | Edit title "this and future" on the start date | Same as "modify all" |
 | User changes date of a recurring instance | Detach from series (set `recurringId = null`) |
 | Template with endDate in the past | No active instances; template remains for history. User can delete manually. |
+| Change tags on recurring instance | Detaches from series with confirmation; user sees a warning that this instance will leave the recurring group |
+| Concurrent renewal requests | Handled atomically — second request sees updated `generatedUntil` and skips |
 
 ## Performance Considerations
 
 - **Batch insert:** Use a single transaction for generating all instances (up to ~7,300 for daily/20yr). SQLite handles this in under a second.
 - **Batch update/delete:** Scoped operations use `WHERE recurringId = ? AND date >= ?`, which is efficient with an index on `(recurringId, date)`.
 - **Index:** Add a composite index on `todos(recurringId, date)` for efficient scoped queries.
+- **Index on date:** Ensure an index exists on `todos(date)` to keep date-based queries performant as row count grows with recurring instances.
+- **Row volume:** A daily recurring todo generates ~7,300 rows over 20 years, plus the same number of `todoTags` rows per tag. With 5 daily recurring todos × 2 tags each, this is ~73K todo rows + ~146K tag rows — well within SQLite's comfort zone, but worth monitoring.
 
 ## Migration
 
