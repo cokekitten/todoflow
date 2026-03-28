@@ -13,5 +13,6 @@ export interface Todo {
   sortOrder?: number;
   createdAt?: string;
   updatedAt?: string;
+  recurringId?: string | null;
   tags: Tag[];
 }

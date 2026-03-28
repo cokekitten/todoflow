@@ -26,6 +26,7 @@ export interface TodoWithTags {
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
+  recurringId: string | null;
   tags: { id: string; name: string; color: string | null }[];
 }
 

@@ -1,5 +1,16 @@
 import { sql } from "drizzle-orm";
-import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+
+export const recurringTemplates = sqliteTable("recurring_templates", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull(),
+  frequency: text("frequency").notNull(), // daily | weekly | monthly | yearly
+  startDate: text("start_date").notNull(),
+  endDate: text("end_date"),
+  generatedUntil: text("generated_until").notNull(),
+  createdAt: text("created_at").default(sql`(datetime('now'))`).notNull(),
+  updatedAt: text("updated_at").default(sql`(datetime('now'))`).notNull(),
+});
 
 export const todos = sqliteTable("todos", {
   id: text("id").primaryKey(),
@@ -9,7 +20,11 @@ export const todos = sqliteTable("todos", {
   sortOrder: integer("sort_order").default(0).notNull(),
   createdAt: text("created_at").default(sql`(datetime('now'))`).notNull(),
   updatedAt: text("updated_at").default(sql`(datetime('now'))`).notNull(),
-});
+  recurringId: text("recurring_id").references(() => recurringTemplates.id, { onDelete: "cascade" }),
+}, (table) => [
+  index("idx_todos_date").on(table.date),
+  index("idx_todos_recurring_date").on(table.recurringId, table.date),
+]);
 
 export const tags = sqliteTable("tags", {
   id: text("id").primaryKey(),
