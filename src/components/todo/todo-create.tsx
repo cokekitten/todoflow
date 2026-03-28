@@ -170,9 +170,11 @@ export function TodoCreate({ date, defaultTagId, onCreated }: TodoCreateProps) {
           </div>
         ) : null}
 
-        <RecurringSelect value={frequency} onChange={setFrequency} />
+        {isDatePage ? (
+          <RecurringSelect value={frequency} onChange={setFrequency} />
+        ) : null}
 
-        {frequency ? (
+        {isDatePage && frequency ? (
           <div className="relative flex-shrink-0" data-no-drag="true">
             <button
               ref={endDateButtonRef}

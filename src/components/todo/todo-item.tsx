@@ -183,6 +183,10 @@ export const TodoItem = forwardRef<HTMLDivElement, TodoItemProps>(function TodoI
         </span>
       )}
 
+      {isRecurring ? (
+        <span className="flex-shrink-0 text-[11px] text-[var(--text-dim)]" title="重复待办">↻</span>
+      ) : null}
+
       <div className="ml-auto flex items-center gap-2">
         {showDate && onDateChange ? (
         <div className="relative flex-shrink-0" data-no-drag="true">
@@ -211,10 +215,6 @@ export const TodoItem = forwardRef<HTMLDivElement, TodoItemProps>(function TodoI
         <TodoChip className={["bg-[var(--bg-primary)]", dateTone.className].join(" ")} style={dateTone.style}>
           {todo.date}
         </TodoChip>
-      ) : null}
-
-      {isRecurring ? (
-        <span className="flex-shrink-0 text-[11px] text-[var(--text-dim)]" title="重复待办">↻</span>
       ) : null}
 
       {!hideTags ? (
