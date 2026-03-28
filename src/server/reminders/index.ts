@@ -1,6 +1,8 @@
 import { and, eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 
+import { renewTemplates } from "../recurring";
+
 import { db } from "../db";
 import { reminderLogs } from "../db/schema";
 import { getReminderTimes, getTelegramConfig } from "../settings";
@@ -109,6 +111,12 @@ export async function triggerReminders(): Promise<TriggerResult> {
   const today = getDateString(now);
   const tomorrow = getDateString(now, 1);
   const result: TriggerResult = { sent: [], skipped: [], errors: [] };
+
+  try {
+    renewTemplates();
+  } catch {
+    // Non-critical — don't block reminder delivery
+  }
 
   if (!config.botToken || !config.chatId) {
     result.errors.push({ type: "config", date: "", error: "Telegram not configured" });
